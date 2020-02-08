@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: openproject
+  name: openproject-initial
   annotations:
     description: "OpenProject - Online Open-Source Project Management"
     tags: "projectmanagement,openproject"
@@ -13,12 +13,6 @@ parameters:
 - name: OPENPROJECT_HOST
   description: Application URL of Nextcloud (Route/host)
   required: true
-- name: OPENPROJECT_DOCKERFILE_REPO
-  description: OpenProject Dockerfile source repository
-  value: https://github.com/jngrb/openproject-openshift.git
-- name: GIT_BRANCH
-  description: branch in source repository
-  value: master
 - name: PVC_SIZE
   description: PVC size for Apps, Config and Data
   value: 4Gi
@@ -45,61 +39,31 @@ objects:
   kind: ImageStream
   metadata:
     labels:
-      build: community-app
-      app: community
-    name: community-app
+      build: community-initial
+      app: community-initial
+    name: community-initial
   spec:
     tags:
     - annotations: null
       from:
         kind: DockerImage
-        name: community-app:latest
+        name: openproject/community:10
       generation: null
       importPolicy: {}
-      name: latest
+      name: '10'
       referencePolicy:
-        type: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: null
-    labels:
-      build: community-app
-      app: community
-    name: community-app
-  spec:
-    nodeSelector: null
-    output:
-      to:
-        kind: ImageStreamTag
-        name: community-app:latest
-    postCommit: {}
-    resources: {}
-    runPolicy: Serial
-    source:
-      git:
-        uri: ${OPENPROJECT_DOCKERFILE_REPO}
-        ref: ${GIT_BRANCH}
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: DockerImage
-          name: openproject/community:10
-      type: Docker
-    triggers:
-    - type: ConfigChange
+        type: Source
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
     labels:
-      app: community
-    name: community
+      app: community-initial
+    name: community-initial
   spec:
     replicas: 1
     selector:
-      app: community
-      deploymentconfig: community
+      app: community-initial
+      deploymentconfig: community-initial
     strategy:
       activeDeadlineSeconds: 21600
       resources: {}
@@ -113,12 +77,10 @@ objects:
     template:
       metadata:
         labels:
-          app: community
-          deploymentconfig: community
+          app: community-initial
+          deploymentconfig: community-initial
       spec:
         containers:
-        - command:
-            - ./docker/web
           env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}
@@ -126,11 +88,11 @@ objects:
               value: ${DATABASE_URL}
             - name: RAILS_CACHE_STORE
               value: file_store
-          image: community-app
-          imagePullPolicy: Always
-          name: community-web
+          image: community-initial
+          imagePullPolicy: IfNotPresent
+          name: community-initial
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               protocol: TCP
           resources: {}
           terminationMessagePath: /dev/termination-log
@@ -139,25 +101,8 @@ objects:
             - mountPath: /var/openproject/assets
               name: openproject-data
               subPath: assets
-        - command:
-            - ./docker/worker
-          env:
-            - name: SECRET_KEY_BASE
-              value: ${SECRET_KEY_BASE}
-            - name: DATABASE_URL
-              value: ${DATABASE_URL}
-            - name: RAILS_CACHE_STORE
-              value: file_store
-          image: community-app
-          imagePullPolicy: Always
-          name: community-worker
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/openproject/assets
-              name: openproject-data
-              subPath: assets
+            - mountPath: /var/openproject/pgdata
+              name: community-initial-1
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}
@@ -166,47 +111,48 @@ objects:
         - name: openproject-data
           persistentVolumeClaim:
             claimName: openproject-data
+        - emptyDir: {}
+          name: community-initial-1
     test: false
     triggers:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - community-web
-        - community-worker
+        - community-initial
         from:
           kind: ImageStreamTag
-          name: community-app:latest
+          name: community-initial:10
       type: ImageChange
     - type: ConfigChange
 - apiVersion: v1
   kind: Service
   metadata:
     labels:
-      app: community
-    name: community
+      app: community-initial
+    name: community-initial
   spec:
     ports:
     - name: http
       port: 80
       protocol: TCP
-      targetPort: 8080
+      targetPort: 80
     selector:
-      app: community
-      deploymentconfig: community
+      app: community-initial
+      deploymentconfig: community-initial
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
   kind: Route
   metadata:
     labels:
-      app: community
-    name: community
+      app: community-initial
+    name: community-initial
   spec:
     host: ${OPENPROJECT_HOST}
     port:
       targetPort: http
     to:
       kind: Service
-      name: community
+      name: community-initial
       weight: 100
     wildcardPolicy: None
