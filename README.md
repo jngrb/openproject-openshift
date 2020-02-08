@@ -46,6 +46,10 @@ Wait for the POD to start and run through all initialization steps. This may tak
 
 Do the initial login and settings by browsing to `$OPENPROJECT_HOST`.
 
+* Login with account 'admin' and password 'admin' and change the initial password.
+* Try to login with the newly chosen password it should work.
+* To persistence of the data, try a reployment of the DB and the OpenProject container and check that you can still login.
+
 Stop the initial container and remove the root-privilege again.
 
 ```[bash]
@@ -61,3 +65,8 @@ oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/mast
 ```
 
 Finally, you can remove the initializer deployment. It is no longer needed.
+
+### 4 Settings for HTTPS
+
+* Change the router to edge terminated HTTPS.
+* Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
