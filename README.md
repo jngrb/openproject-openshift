@@ -25,11 +25,11 @@ oc new-project $PROJECT
 ### 1 Deploy Database
 
 ```[bash]
-oc -n $PROJECT process postgresql-persistent -p POSTGRESQL_USER=openproject -p POSTGRESQL_PASSWORD=openproject -p POSTGRESQL_DATABASE=openproject | oc -n $PROJECT create -f -
+oc -n openshift process postgresql-persistent -p POSTGRESQL_USER=openproject -p POSTGRESQL_PASSWORD=openproject -p POSTGRESQL_DATABASE=openproject | oc -n $PROJECT create -f -
 ```
 
 ### 2 Deploy OpenProject
 
-```
+```[bash]
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com | oc -n $PROJECT create -f -
 ```
