@@ -1,4 +1,5 @@
 FROM openproject/community:10
+RUN /app/docker/entrypoint.sh /bin/bash
 ARG APP_PATH=/app
 RUN chgrp -R 0 /home/app && \
     chmod -R g=u /home/app && \
@@ -8,8 +9,8 @@ RUN chgrp -R 0 /home/app && \
     chgrp 0 /etc/passwd && \
     chmod g=u /etc/passwd
 COPY uid_entrypoint.sh /app/docker/
-RUN /app/docker/entrypoint.sh /bin/bash
 ENTRYPOINT [ "/app/docker/uid_entrypoint.sh" ]
 CMD [ "./docker/entrypoint.sh", "/bin/bash" ]
 #USER app:app # UID==1000,GID=1000
-USER 1000:0 # OpenShift needs the GID=0 setting
+# OpenShift needs the GID=0 setting
+USER 1000:0
