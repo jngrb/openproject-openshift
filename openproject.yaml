@@ -126,6 +126,8 @@ objects:
               value: ${DATABASE_URL}
             - name: RAILS_CACHE_STORE
               value: file_store
+            - name: PASSENGER_START_TIMEOUT
+              value: 180
           image: community-app
           imagePullPolicy: Always
           name: community-web
@@ -148,6 +150,8 @@ objects:
               value: ${DATABASE_URL}
             - name: RAILS_CACHE_STORE
               value: file_store
+            - name: PASSENGER_START_TIMEOUT
+              value: 180
           image: community-app
           imagePullPolicy: Always
           name: community-worker
