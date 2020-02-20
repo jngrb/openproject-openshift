@@ -106,6 +106,8 @@ objects:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}
+        serviceAccount: root-allowed
+        serviceAccountName: root-allowed
         terminationGracePeriodSeconds: 30
         volumes:
         - name: openproject-data

@@ -33,7 +33,9 @@ oc -n openshift process postgresql-persistent -p POSTGRESQL_USER=openproject -p 
 For initialization, the OpenProject container must run as root. Hence, enable this feature for the projects default service account:
 
 ```[bash]
-oc adm policy add-scc-to-user anyuid -z default
+oc create sa root-allowed
+oc policy add-role-to-user system:deployer -z root-allowed
+oc adm policy add-scc-to-user anyuid -z root-allowed
 ```
 
 Now, we can run the all-in-one community image for initialization.
