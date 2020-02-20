@@ -81,7 +81,7 @@ objects:
           deploymentconfig: community-initial
       spec:
         containers:
-          env:
+        - env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}
             - name: DATABASE_URL
@@ -106,7 +106,6 @@ objects:
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         securityContext: {}
-        serviceAccount: root-allowed
         serviceAccountName: root-allowed
         terminationGracePeriodSeconds: 30
         volumes:
