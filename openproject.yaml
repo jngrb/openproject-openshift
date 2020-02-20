@@ -118,6 +118,9 @@ objects:
       spec:
         containers:
         - command:
+            - /app/docker/uid_entrypoint.sh
+          args:
+            - ./docker/entrypoint.sh
             - ./docker/web
           env:
             - name: SECRET_KEY_BASE
@@ -158,6 +161,9 @@ objects:
               name: openproject-data
               subPath: assets
         - command:
+            - /app/docker/uid_entrypoint.sh
+          args:
+            - ./docker/entrypoint.sh
             - ./docker/worker
           env:
             - name: SECRET_KEY_BASE
