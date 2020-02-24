@@ -91,3 +91,47 @@ oc delete sa root-allowed
 
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
+
+## Dependency on OpenProject Community Edition
+
+This OpenShift template uses software provided by the OpenProject team, specially the official OpenProject docker image (see references below).
+
+These components are licenced under GPL-3.0 with their copyright belonging to the OpenProject team. Also the OpenProject trademark and logo belong to OpenProject GmbH and/or OpenProject Foundation eV.
+
+References:
+
+* <https://docs.openproject.org/installation-and-operations/installation/>
+* <https://github.com/opf/openproject>
+* <https://hub.docker.com/r/openproject/community>
+* <http://www.gnu.org/licenses/gpl-3.0.html>
+
+## License for the OpenShift template
+
+For compatibility with the OpenProject software components, that this template depends on, this work is published under a very similar and compatible license, the AGPL-3.0.
+
+Copyright (C) 2020, Jan Grieb
+
+> This program is free software: you can redistribute it and/or modify
+> it under the terms of the GNU Affero General Public License as published by
+> the Free Software Foundation, either version 3 of the License, or
+> (at your option) any later version.
+>
+> This program is distributed in the hope that it will be useful,
+> but WITHOUT ANY WARRANTY; without even the implied warranty of
+> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> GNU Affero General Public License for more details.
+>
+> You should have received a copy of the GNU Affero General Public License
+> along with this program.  The license is location in the file `LICENSE`
+> in this repository. Also, see the public document on
+> <http://www.gnu.org/licenses/>.
+
+## Contributions
+
+Very welcome!
+
+1. Fork it (https://github.com/jngrb/openproject-openshift/fork)
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create a new Pull Request
