@@ -22,10 +22,21 @@ PROJECT=openproject
 oc new-project $PROJECT
 ```
 
-### 1 Deploy Database
+### 1a Deploy Database
+
+We use the default persistent PostgreSQL app provided by OpenShift.
 
 ```[bash]
 oc -n openshift process postgresql-persistent -p POSTGRESQL_USER=openproject -p POSTGRESQL_PASSWORD=openproject -p POSTGRESQL_DATABASE=openproject | oc -n $PROJECT create -f -
+```
+
+### 1b Deploy memcached container
+
+We use the MemcacheD app provided by Red Hat's Software Collections.
+
+```[bash]
+oc process -f https://raw.githubusercontent.com/sclorg/memcached/master/openshift-template.yml | oc -n $PROJECT create -f -
+oc expose dc memcached --port 11211
 ```
 
 ### 2 Deploy OpenProject Initializer
@@ -91,6 +102,12 @@ oc delete sa root-allowed
 
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
+
+## Open issues / ideas
+
+* Add "cron" and "seeder" containers as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml>
+* How can we migitate a lot of the "problems" arising from the no-root-permissions policy on an OpenShift cluster?
+* Can we use the Passenger Openshift template from Red Hat's Software Collections, see <https://github.com/sclorg/passenger-container>
 
 ## Dependency on OpenProject Community Edition
 

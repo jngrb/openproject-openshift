@@ -128,7 +128,9 @@ objects:
             - name: DATABASE_URL
               value: ${DATABASE_URL}
             - name: RAILS_CACHE_STORE
-              value: file_store
+              value: memcache
+            - name: CACHE_MEMCACHE_SERVER
+              value: 'memcached.openproject.svc:11211'
             - name: PASSENGER_START_TIMEOUT
               value: "240"
           readinessProbe:
@@ -171,7 +173,9 @@ objects:
             - name: DATABASE_URL
               value: ${DATABASE_URL}
             - name: RAILS_CACHE_STORE
-              value: file_store
+              value: memcache
+            - name: CACHE_MEMCACHE_SERVER
+              value: 'memcached.openproject.svc:11211'
             - name: PASSENGER_START_TIMEOUT
               value: "240"
           readinessProbe:
