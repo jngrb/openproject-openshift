@@ -60,7 +60,19 @@ oc delete pod -l app=openproject-initial
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
 
-### 3 Deploy Final OpenProject Application
+### 3 Change permissions for persistent storage volume
+
+As the persistent storage volume was filed with root permissions, you need to prepare the volume to be accessible (especially writable) for any OpenShift serviceaccount.
+
+Currently, you need to do this manually. Assuming that the storage was manually mounted to `/mnt/openproject-data` on any of the cluster nodes, run the following commands as an admin user that is allowed to run `sudo` on the cluster:
+
+```[bash]
+cd /mnt/openproject-data
+sudo chgroup -R 0 assets
+sudo chmod -R g+w assets
+```
+
+### 4 Deploy Final OpenProject Application
 
 When the initialization of the files and database is done, we can run the 'real' OpenShift deployment for OpenProject.
 
@@ -75,7 +87,7 @@ oc delete dc community-initial
 oc delete sa root-allowed
 ```
 
-### 4 Settings for HTTPS
+### 5 Settings for HTTPS
 
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
