@@ -88,7 +88,7 @@ sudo chmod -R g+w assets
 When the initialization of the files and database is done, we can run the 'real' OpenShift deployment for OpenProject.
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresq | oc -n $PROJECT create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc -n $PROJECT create -f -
 ```
 
 Finally, you can remove the initializer deployment. It is no longer needed.
@@ -105,9 +105,11 @@ oc delete sa root-allowed
 
 ## Open issues / ideas
 
-* Add "cron" and "seeder" containers as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml>
+* Add IMAP server and run a "cron" container as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml> to process mails received from IMAP.
+* Add the "seeder" container as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml> to allow database upgrades/migrations.
+* Can we use the Passenger Openshift template from Red Hat's Software Collections, see <https://github.com/sclorg/passenger-container>?
+* Or should we use "USE_PUMA=true"?
 * How can we migitate a lot of the "problems" arising from the no-root-permissions policy on an OpenShift cluster?
-* Can we use the Passenger Openshift template from Red Hat's Software Collections, see <https://github.com/sclorg/passenger-container>
 
 ## Dependency on OpenProject Community Edition
 
