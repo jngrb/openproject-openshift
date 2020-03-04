@@ -39,6 +39,8 @@ oc process -f https://raw.githubusercontent.com/sclorg/memcached/master/openshif
 oc expose dc memcached --port 11211
 ```
 
+If the OpenProject pod is to be deployed only on selected nodes, apply the node selector also to the Memcached deployment (here, we use the node selector 'appclass=main').
+
 ### 2 Deploy OpenProject Initializer
 
 For initialization, the OpenProject container must run as root. Hence, enable this feature for the projects default service account:

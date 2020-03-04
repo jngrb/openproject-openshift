@@ -116,6 +116,8 @@ objects:
           app: community
           deploymentconfig: community
       spec:
+        nodeSelector:
+          appclass: main
         containers:
         - command:
             - /app/docker/uid_entrypoint.sh
