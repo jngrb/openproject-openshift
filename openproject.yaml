@@ -212,6 +212,14 @@ objects:
             - mountPath: /var/openproject/assets
               name: openproject-data
               subPath: assets
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: openproject-data
+          persistentVolumeClaim:
+            claimName: openproject-data
     test: false
     triggers:
     - imageChangeParams:

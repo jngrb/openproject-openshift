@@ -1,5 +1,5 @@
-ARG COMMUNITY_IMAGE_TAG=10.4
-FROM openproject/community:$COMMUNITY_IMAGE_TAG
+FROM openproject/community:10.4
+# NOTE: the FROM line will be replaced by Openshift according to the BuildConfig
 RUN /app/docker/entrypoint.sh /bin/bash
 ARG APP_PATH=/app
 RUN chgrp -R 0 /home/app && \
