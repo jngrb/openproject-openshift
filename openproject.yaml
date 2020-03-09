@@ -10,6 +10,9 @@ metadata:
     template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
     template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
 parameters:
+- name: COMMUNITY_IMAGE_TAG
+  description: Tag of the OpenProject Community Docker Image to be deployed
+  value: '10.4'
 - name: OPENPROJECT_HOST
   description: Application URL of Nextcloud (Route/host)
   required: true
@@ -85,7 +88,10 @@ objects:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: openproject/community:10
+          name: openproject/community:${COMMUNITY_IMAGE_TAG}
+        buildArgs:
+          - name: COMMUNITY_IMAGE_TAG
+          - value: '${COMMUNITY_IMAGE_TAG}'
       type: Docker
     triggers:
     - type: ConfigChange

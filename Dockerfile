@@ -1,4 +1,5 @@
-FROM openproject/community:10
+ARG COMMUNITY_IMAGE_TAG=10.4
+FROM openproject/community:$COMMUNITY_IMAGE_TAG
 RUN /app/docker/entrypoint.sh /bin/bash
 ARG APP_PATH=/app
 RUN chgrp -R 0 /home/app && \

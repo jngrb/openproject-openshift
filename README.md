@@ -105,8 +105,33 @@ oc delete sa root-allowed
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
 
+## Upgrades
+
+### Manual upgrade
+
+Scale the regular deployment to zero.
+
+```[bash]
+oc project $PROJECT
+oc scale dc community --replicas=0
+```
+
+Then, run the upgrade job:
+
+```[bash]
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=10.4 -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+```
+
+Finally, scale the regular deployment back to your required amount.
+
+```[bash]
+oc project $PROJECT
+oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
+```
+
 ## Open issues / ideas
 
+* Automatic upgrades and "maintenance mode" while upgrading (and even for other maintenance tasks)
 * Add IMAP server and run a "cron" container as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml> to process mails received from IMAP.
 * Add the "seeder" container as in <https://github.com/opf/openproject/blob/dev/docker-compose.yml> to allow database upgrades/migrations.
 * Can we use the Passenger Openshift template from Red Hat's Software Collections, see <https://github.com/sclorg/passenger-container>?

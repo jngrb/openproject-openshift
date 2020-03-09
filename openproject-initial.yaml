@@ -80,6 +80,8 @@ objects:
           app: community-initial
           deploymentconfig: community-initial
       spec:
+        nodeSelector:
+          appclass: main
         containers:
         - env:
             - name: SECRET_KEY_BASE
