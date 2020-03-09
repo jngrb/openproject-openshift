@@ -57,12 +57,9 @@ objects:
           image: openproject/community:${COMMUNITY_IMAGE_TAG}
           imagePullPolicy: Always
           command:
-            - bash
-          args:
-            - -ex
             - ./docker/entrypoint.sh
-            - test
-            - '0'
+          args:
+            - ./docker/seeder
           env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}

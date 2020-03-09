@@ -46,6 +46,7 @@ If the OpenProject pod is to be deployed only on selected nodes, apply the node 
 For initialization, the OpenProject container must run as root. Hence, enable this feature for the projects default service account:
 
 ```[bash]
+oc project $PROJECT
 oc create sa root-allowed
 oc policy add-role-to-user system:deployer -z root-allowed
 oc adm policy add-scc-to-user anyuid -z root-allowed
@@ -54,7 +55,7 @@ oc adm policy add-scc-to-user anyuid -z root-allowed
 Now, we can run the all-in-one community image for initialization (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.).
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=openproject-initial.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc -n $PROJECT create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=openproject-initial.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
@@ -90,7 +91,7 @@ sudo chmod -R g+w assets
 When the initialization of the files and database is done, we can run the 'real' OpenShift deployment for OpenProject.
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc -n $PROJECT create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
 Finally, you can remove the initializer deployment. It is no longer needed.
@@ -104,6 +105,14 @@ oc delete sa root-allowed
 
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
+
+### 6 Change the number of replica
+
+Scale the deployment to the number of replicas required for your use case.
+
+```[bash]
+oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
+```
 
 ## Upgrades
 
@@ -122,10 +131,10 @@ Then, run the upgrade job:
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=10.4 -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
-Finally, scale the regular deployment back to your required amount.
+Finally, change the deployment configuration to the image tag and scale the regular deployment back to your required amount.
 
 ```[bash]
-oc project $PROJECT
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=10.4 -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 ```
 
