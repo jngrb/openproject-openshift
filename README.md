@@ -160,6 +160,29 @@ References:
 * <https://hub.docker.com/r/openproject/community>
 * <http://www.gnu.org/licenses/gpl-3.0.html>
 
+### Using a custom fork
+
+Create a secret with the access token to the fork repository.
+
+```[bash]
+oc create secret generic <secret_name> \
+  --from-literal=username=<user> \
+  --from-literal=password=<token> \
+  --type=kubernetes.io/basic-auth
+```
+
+Then, create a build configuration that builds the basic OpenProject image from the fork repository:
+
+```[bash]
+oc process \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-build-fork.yaml \
+  -p COMMUNITY_IMAGE_TAG=10-noupload \
+  -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
+  -p GIT_BRANCH=stable/10-noupload \
+  -p GIT_ACCESS_TOKEN_SECRET=<secret_name> | \
+  oc -n $PROJECT create -f -
+```
+
 ## License for the OpenShift template
 
 For compatibility with the OpenProject software components, that this template depends on, this work is published under a very similar and compatible license, the AGPL-3.0.

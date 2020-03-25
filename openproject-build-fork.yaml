@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: openproject
+  annotations:
+    description: "OpenProject - Online Open-Source Project Management"
+    tags: "projectmanagement,openproject"
+    iconClass: fa-cloud-upload
+    template.openshift.io/provider-display-name: "jngrb"
+    template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
+    template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
+parameters:
+- name: COMMUNITY_IMAGE_TAG
+  description: Tag of the OpenProject Community Docker Image to be deployed
+  value: '10-noupload'
+- name: OPENPROJECT_FORK_REPO
+  description: OpenProject Dockerfile source repository
+  value: https://gitlab.com/ingenieure-ohne-grenzen/openproject.git
+- name: GIT_BRANCH
+  description: branch in source repository
+  value: stable/10-noupload
+- name: GIT_ACCESS_TOKEN_SECRET
+  description: Name of the OpenShift secret with the access token for the Git repository
+  value: dkp-spielwiese-gitlab-read-access
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: community-fork
+      app: community
+    name: community-fork
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: community-fork:${COMMUNITY_IMAGE_TAG}
+      generation: null
+      importPolicy: {}
+      name: ${COMMUNITY_IMAGE_TAG}
+      referencePolicy:
+        type: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      build: community-fork
+      app: community
+    name: community-fork
+  spec:
+    nodeSelector:
+      appclass: main
+    output:
+      to:
+        kind: ImageStreamTag
+        name: community-fork:${COMMUNITY_IMAGE_TAG}
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      git:
+        uri: ${OPENPROJECT_FORK_REPO}
+        ref: ${GIT_BRANCH}
+      type: Git
+      sourceSecret:
+        name: "${GIT_ACCESS_TOKEN_SECRET}"
+    strategy:
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: ruby:2.6-stretch
+      type: Docker
+    triggers:
+    - type: ConfigChange

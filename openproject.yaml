@@ -71,7 +71,8 @@ objects:
       app: community
     name: community-app
   spec:
-    nodeSelector: null
+    nodeSelector:
+      appclass: main
     output:
       to:
         kind: ImageStreamTag
