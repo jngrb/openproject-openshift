@@ -10,6 +10,12 @@ metadata:
     template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
     template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
 parameters:
+- name: COMMUNITY_IMAGE_KIND
+  description: Kind of the OpenProject Community Docker Image taken as source (DockerImage or ImageStreamTag)
+  value: DockerImage
+- name: COMMUNITY_IMAGE_NAME
+  description: Image name of the OpenProject Community Docker Image to be deployed
+  value: openproject/community
 - name: COMMUNITY_IMAGE_TAG
   description: Tag of the OpenProject Community Docker Image to be deployed
   value: '10.4'
@@ -88,8 +94,8 @@ objects:
     strategy:
       dockerStrategy:
         from:
-          kind: DockerImage
-          name: openproject/community:${COMMUNITY_IMAGE_TAG}
+          kind: ${COMMUNITY_IMAGE_KIND}
+          name: ${COMMUNITY_IMAGE_NAME}:${COMMUNITY_IMAGE_TAG}
         buildArgs:
           - name: COMMUNITY_IMAGE_TAG
           - value: '${COMMUNITY_IMAGE_TAG}'

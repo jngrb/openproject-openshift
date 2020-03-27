@@ -165,6 +165,7 @@ References:
 Create a secret with the access token to the fork repository.
 
 ```[bash]
+oc project $PROJECT
 oc create secret generic <secret_name> \
   --from-literal=username=<user> \
   --from-literal=password=<token> \
@@ -180,7 +181,20 @@ oc process \
   -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
   -p GIT_BRANCH=stable/10-noupload \
   -p GIT_ACCESS_TOKEN_SECRET=<secret_name> | \
-  oc -n $PROJECT create -f -
+  oc create -f -
+```
+
+Next, we can re-deploy the community POD with the fork-based image:
+
+```[bash]
+oc process
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
+  -p OPENPROJECT_HOST=openproject.example.com \
+  -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject \
+  -p COMMUNITY_IMAGE_NAME=community-fork \
+  -p COMMUNITY_IMAGE_TAG=10-noupload | \
+  oc apply -f -
+oc start-build community-app
 ```
 
 ## License for the OpenShift template
