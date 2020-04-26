@@ -205,6 +205,7 @@ oc process
   -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
   -p OPENPROJECT_HOST=openproject.example.com \
   -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject \
+  -p COMMUNITY_IMAGE_KIND=ImageStreamTag
   -p COMMUNITY_IMAGE_NAME=community-fork \
   -p COMMUNITY_IMAGE_TAG=10-noupload | \
   oc apply -f -
