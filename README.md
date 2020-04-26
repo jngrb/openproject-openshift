@@ -150,6 +150,8 @@ oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/mast
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 ```
 
+Note: if you use a custom fork, see the description below to update the forked image.
+
 ## Open issues / ideas
 
 * Automatic upgrades and "maintenance mode" while upgrading (and even for other maintenance tasks)
@@ -207,6 +209,15 @@ oc process
   -p COMMUNITY_IMAGE_TAG=10-noupload | \
   oc apply -f -
 oc start-build community-app
+```
+
+#### Upgrading the forked image
+
+For a new minor release, merge the forked git branch with upstream and push into the forked repo. Now, rerung the build jobs:
+
+```[bash]
+oc start-build community-fork # needs 25 minutes to build on our cluster
+oc start-build community-app # only after the community-fork build completed successfully
 ```
 
 ## License for the OpenShift template
