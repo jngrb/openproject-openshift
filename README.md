@@ -121,20 +121,32 @@ oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 Scale the regular deployment to zero.
 
 ```[bash]
+export PROJECT=openproject
+export NEW_COMMUNITY_IMAGE_TAG=10.5
+export POSTGRESQL_PASSWORD=...
 oc project $PROJECT
 oc scale dc community --replicas=0
 ```
 
-Then, run the upgrade job:
+Then, modify the image stream to include the new tag and run the upgrade job:
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=10.4 -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc create -f -
+```
+
+Note that if the password is wrong, the container logs will contain a misleading error:
+
+```
+DATABASE UNSUPPORTED ERROR
+
+Database server is not PostgreSql. As OpenProject uses non standard ANSI-SQL for performance optimizations, using a different DBMS will break and is thus prevented.
 ```
 
 Finally, change the deployment configuration to the image tag and scale the regular deployment back to your required amount.
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=10.4 -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 ```
 

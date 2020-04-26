@@ -21,24 +21,6 @@ parameters:
   value: >-
     postgres://openproject:openproject@postgresql.openproject.svc:5432/openproject
 objects:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      build: community-upgrade
-      app: community-upgrade
-    name: community-upgrade
-  spec:
-    tags:
-    - annotations: null
-      from:
-        kind: DockerImage
-        name: openproject/community:${COMMUNITY_IMAGE_TAG}
-      generation: null
-      importPolicy: {}
-      name: '${COMMUNITY_IMAGE_TAG}'
-      referencePolicy:
-        type: Source
 - apiVersion: batch/v1
   kind: Job
   metadata:
