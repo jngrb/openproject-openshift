@@ -40,7 +40,7 @@ objects:
   metadata:
     labels:
       build: community-initial
-      app: community-initial
+      app: openproject
     name: community-initial
   spec:
     tags:
@@ -57,12 +57,12 @@ objects:
   kind: DeploymentConfig
   metadata:
     labels:
-      app: community-initial
+      app: openproject
     name: community-initial
   spec:
     replicas: 1
     selector:
-      app: community-initial
+      app: openproject
       deploymentconfig: community-initial
     strategy:
       activeDeadlineSeconds: 21600
@@ -77,7 +77,7 @@ objects:
     template:
       metadata:
         labels:
-          app: community-initial
+          app: openproject
           deploymentconfig: community-initial
       spec:
         nodeSelector:
@@ -131,7 +131,7 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: community-initial
+      app: openproject
     name: community-initial
   spec:
     ports:
@@ -140,7 +140,7 @@ objects:
       protocol: TCP
       targetPort: 80
     selector:
-      app: community-initial
+      app: openproject
       deploymentconfig: community-initial
     sessionAffinity: None
     type: ClusterIP
@@ -148,7 +148,7 @@ objects:
   kind: Route
   metadata:
     labels:
-      app: community-initial
+      app: openproject
     name: community-initial
   spec:
     host: ${OPENPROJECT_HOST}

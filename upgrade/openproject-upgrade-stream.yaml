@@ -19,7 +19,7 @@ objects:
   metadata:
     labels:
       build: community-upgrade
-      app: community-upgrade
+      app: openproject
     name: community-upgrade
   spec:
     tags:

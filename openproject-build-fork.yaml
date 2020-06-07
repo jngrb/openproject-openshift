@@ -28,7 +28,7 @@ objects:
   metadata:
     labels:
       build: community-fork
-      app: community
+      app: openproject
     name: community-fork
   spec:
     tags:
@@ -47,7 +47,7 @@ objects:
     creationTimestamp: null
     labels:
       build: community-fork
-      app: community
+      app: openproject
     name: community-fork
   spec:
     nodeSelector:

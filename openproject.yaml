@@ -55,7 +55,7 @@ objects:
   metadata:
     labels:
       build: community-app
-      app: community
+      app: openproject
     name: community-app
   spec:
     tags:
@@ -74,7 +74,7 @@ objects:
     creationTimestamp: null
     labels:
       build: community-app
-      app: community
+      app: openproject
     name: community-app
   spec:
     nodeSelector:
@@ -106,12 +106,12 @@ objects:
   kind: DeploymentConfig
   metadata:
     labels:
-      app: community
+      app: openproject
     name: community
   spec:
     replicas: 1
     selector:
-      app: community
+      app: openproject
       deploymentconfig: community
     strategy:
       activeDeadlineSeconds: 21600
@@ -126,7 +126,7 @@ objects:
     template:
       metadata:
         labels:
-          app: community
+          app: openproject
           deploymentconfig: community
       spec:
         nodeSelector:
@@ -243,7 +243,7 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: community
+      app: openproject
     name: community
   spec:
     ports:
@@ -252,7 +252,7 @@ objects:
       protocol: TCP
       targetPort: 8080
     selector:
-      app: community
+      app: openproject
       deploymentconfig: community
     sessionAffinity: None
     type: ClusterIP
@@ -260,7 +260,7 @@ objects:
   kind: Route
   metadata:
     labels:
-      app: community
+      app: openproject
     name: community
   spec:
     host: ${OPENPROJECT_HOST}
