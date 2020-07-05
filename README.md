@@ -69,8 +69,9 @@ Do the initial login and settings by browsing to `$OPENPROJECT_HOST`.
 Stop the initial container and remove the root-privilege again.
 
 ```[bash]
-oc rollout pause dc openproject-initial
-oc delete pod -l app=openproject-initial
+oc scale dc community-initial --replicas=0
+oc rollout pause dc community-initial
+oc delete pod -l app=openproject
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
 
@@ -82,7 +83,7 @@ Currently, you need to do this manually. Assuming that the storage was manually 
 
 ```[bash]
 cd /mnt/openproject-data
-sudo chgroup -R 0 assets
+sudo chgrp -R 0 assets
 sudo chmod -R g+w assets
 ```
 
