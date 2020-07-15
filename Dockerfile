@@ -8,7 +8,9 @@ RUN chgrp -R 0 /home/app && \
     chgrp -R 0 $APP_PATH $APP_PATH/log $APP_PATH/tmp $APP_PATH/files $APP_PATH/public && \
     chmod -R g=u $APP_PATH $APP_PATH/log $APP_PATH/tmp $APP_PATH/files $APP_PATH/public && \
     chgrp 0 /etc/passwd && \
-    chmod g=u /etc/passwd
+    chmod g=u /etc/passwd && \
+    chgrp -R 0 /tmp/op_uploaded_files && \
+    chmod -R g=u /tmp/op_uploaded_files
 COPY uid_entrypoint.sh /app/docker/
 ENTRYPOINT [ "/app/docker/uid_entrypoint.sh" ]
 CMD [ "./docker/entrypoint.sh", "/bin/bash" ]
