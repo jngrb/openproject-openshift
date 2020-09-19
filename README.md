@@ -27,19 +27,28 @@ oc new-project $PROJECT
 We use the default persistent PostgreSQL app provided by OpenShift.
 
 ```[bash]
-oc -n openshift process postgresql-persistent -p POSTGRESQL_USER=openproject -p POSTGRESQL_PASSWORD=openproject -p POSTGRESQL_DATABASE=openproject | oc -n $PROJECT create -f -
+oc project $PROJECT
+oc -n openshift process postgresql-persistent -p POSTGRESQL_DATABASE=openproject | oc create -f -
 ```
+
+(If you want to keep things simple for testing, use -p POSTGRESQL_USER=onlyoffice -p POSTGRESQL_PASSWORD=onlyoffice.)
 
 ### 1b Deploy memcached container
 
 We use the MemcacheD app provided by Red Hat's Software Collections.
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/sclorg/memcached/master/openshift-template.yml | oc -n $PROJECT create -f -
+oc process -f https://raw.githubusercontent.com/sclorg/memcached/master/openshift-template.yml | oc create -f -
 oc expose dc memcached --port 11211
 ```
 
-If the OpenProject pod is to be deployed only on selected nodes, apply the node selector also to the Memcached deployment (here, we use the node selector 'appclass=main').
+If the OpenProject pod is to be deployed only on selected nodes, apply the node selector also to the Memcached deployment (here, we use the node selector 'appclass=main'):
+
+```[bash]
+oc patch dc memcached --patch='{"spec":{"template":{"spec":{"nodeSelector":{"appclass":"main"}}}}}'
+```
+
+Also, the image stream reference must be fixed from the Console WebUI.
 
 ### 2 Deploy OpenProject Initializer
 
@@ -55,10 +64,12 @@ oc adm policy add-scc-to-user anyuid -z root-allowed
 Now, we can run the all-in-one community image for initialization (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.).
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=openproject-initial.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=openproject-initial.example.com -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
+
+(As of 2020-09-19, the initialization failes with a permission denied. This can be fixed by running "chown -R app:app /app/tmp/cache/DCB" at an early time of the initialization in the terminal.)
 
 Do the initial login and settings by browsing to `$OPENPROJECT_HOST`.
 
@@ -70,6 +81,7 @@ Stop the initial container and remove the root-privilege again.
 
 ```[bash]
 oc scale dc community-initial --replicas=0
+# wait here until the replica count is zero
 oc rollout pause dc community-initial
 oc delete pod -l app=openproject
 oc adm policy remove-scc-from-user anyuid -z root-allowed
@@ -92,6 +104,7 @@ sudo chmod -R g+w assets
 When the initialization of the files and database is done, we can run the 'real' OpenShift deployment for OpenProject.
 
 ```[bash]
+oc project $PROJECT
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 

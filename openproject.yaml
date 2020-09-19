@@ -40,17 +40,6 @@ parameters:
     postgres://openproject:openproject@postgresql.openproject.svc:5432/openproject
 objects:
 - apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    name: openproject-data
-  spec:
-    accessModes:
-    - ReadWriteMany
-    resources:
-      requests:
-        storage: ${PVC_SIZE}
-    storageClassName: glusterfs-storage
-- apiVersion: v1
   kind: ImageStream
   metadata:
     labels:
