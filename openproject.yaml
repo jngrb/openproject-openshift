@@ -18,7 +18,7 @@ parameters:
   value: openproject/community
 - name: COMMUNITY_IMAGE_TAG
   description: Tag of the OpenProject Community Docker Image to be deployed
-  value: '10.4'
+  value: '10.6'
 - name: OPENPROJECT_HOST
   description: Application URL of Nextcloud (Route/host)
   required: true

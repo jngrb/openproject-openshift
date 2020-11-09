@@ -1,0 +1,61 @@
+version: '3.7'
+services:
+  openproject-web:
+    container_name: openproject-web
+    build: ..
+    user: "1001:0"
+    restart: always
+    depends_on:
+      - openproject-db
+    environment:
+      SECRET_KEY_BASE: jngsecret
+      DATABASE_URL: "postgres://openproject:openproject@openproject-db:5432/openproject?encoding=utf8&pool=5&timeout=5000&reconnect=true"
+      RAILS_CACHE_STORE: file_store
+      PASSENGER_START_TIMEOUT: 180
+    volumes:
+      - openproject-static:/var/openproject/assets
+    networks:
+      app_net:
+    ports:
+      - 80:8080
+    command: "./docker/entrypoint.sh ./docker/web"
+  openproject-worker:
+    container_name: openproject-worker
+    build: ..
+    user: "1001:0"
+    restart: always
+    depends_on:
+      - openproject-db
+    environment:
+      SECRET_KEY_BASE: jngsecret
+      DATABASE_URL: "postgres://openproject:openproject@openproject-db:5432/openproject"
+      RAILS_CACHE_STORE: file_store
+      PASSENGER_START_TIMEOUT: 180
+    volumes:
+      - openproject-static:/var/openproject/assets
+    networks:
+      app_net:
+    command: "./docker/entrypoint.sh ./docker/worker"
+  openproject-db:
+    container_name: openproject-db
+    image: postgres:9.6
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: openproject
+      POSTGRES_USER: openproject
+      POSTGRES_DB: openproject
+    volumes:
+      - openproject-pgdata:/var/lib/postgresql/data
+    networks:
+      app_net:
+    ports:
+      - 5432:5432
+networks:
+  app_net:
+    name: app_net
+    driver: bridge
+volumes:
+  openproject-pgdata:
+    name: openproject-pgdata
+  openproject-static:
+    name: openproject-static

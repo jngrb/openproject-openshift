@@ -69,7 +69,7 @@ oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/mast
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
 
-(As of 2020-09-19, the initialization failes with a permission denied. This can be fixed by running "chown -R app:app /app/tmp/cache/DCB" at an early time of the initialization in the terminal.)
+(As of 2020-09-19, the initialization failes with a permission denied. This can be fixed by running "chown -R app:app /app/tmp/cache/DC*" at an early time of the initialization in the terminal.)
 
 Do the initial login and settings by browsing to `$OPENPROJECT_HOST`.
 

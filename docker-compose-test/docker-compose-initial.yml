@@ -1,0 +1,41 @@
+version: '3.7'
+services:
+  openproject:
+    container_name: openproject
+    image: openproject/community:10.6
+    restart: always
+    depends_on:
+      - openproject-db
+    environment:
+      SECRET_KEY_BASE: jngsecret
+      DATABASE_URL: "postgres://openproject:openproject@openproject-db:5432/openproject"
+    volumes:
+      - openproject-static:/var/openproject/assets
+#      - openproject-pgdata:/var/openproject/pgdata
+    networks:
+      app_net:
+    ports:
+      - 80:80
+  openproject-db:
+    container_name: openproject-db
+    image: postgres:9.6
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: openproject
+      POSTGRES_USER: openproject
+      POSTGRES_DB: openproject
+    volumes:
+      - openproject-pgdata:/var/lib/postgresql/data
+    networks:
+      app_net:
+    ports:
+      - 5432:5432
+networks:
+  app_net:
+    name: app_net
+    driver: bridge
+volumes:
+  openproject-pgdata:
+    name: openproject-pgdata
+  openproject-static:
+    name: openproject-static

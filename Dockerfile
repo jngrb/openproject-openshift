@@ -1,4 +1,4 @@
-FROM openproject/community:10.4
+FROM openproject/community:10.6
 # NOTE: the FROM line will be replaced by Openshift according to the BuildConfig
 RUN /app/docker/entrypoint.sh /bin/bash
 ARG APP_PATH=/app
