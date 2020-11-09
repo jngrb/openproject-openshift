@@ -117,6 +117,8 @@ oc delete sa root-allowed
 
 ### 5 Settings for HTTPS
 
+Check that you have all checks on `${OPENPROJECT_HOST}/admin/info` except for "IFC conversion pipeline available" (not needed). If "Attachments directory writable" is not yet checked, make sure that the container can write to the attachments persistent volume as described in section "3 Change permissions for persistent storage volume".
+
 * Change the router to edge terminated HTTPS.
 * Login as OpenProject administrator and change the hostname to the OpenShift routers address (`$OPENPROJECT_HOST`) and switch the 'Protocol' setting to 'HTTPS'.
 
