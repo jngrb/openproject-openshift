@@ -64,7 +64,8 @@ oc adm policy add-scc-to-user anyuid -z root-allowed
 Now, we can run the all-in-one community image for initialization (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.).
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=openproject-initial.example.com -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+export OPENPROJECT_INITIAL_HOST=openproject-initial.example.com
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
@@ -104,8 +105,9 @@ sudo chmod -R g+w assets
 When the initialization of the files and database is done, we can run the 'real' OpenShift deployment for OpenProject.
 
 ```[bash]
+export OPENPROJECT_HOST=openproject.example.com
 oc project $PROJECT
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc apply -f -
 ```
 
 Finally, you can remove the initializer deployment. It is no longer needed. The service account will again be needed for upgrades.
@@ -139,6 +141,7 @@ Scale the regular deployment to zero.
 ```[bash]
 export PROJECT=openproject
 export NEW_COMMUNITY_IMAGE_TAG=10.5
+export POSTGRESQL_USER=...
 export POSTGRESQL_PASSWORD=...
 oc project $PROJECT
 oc scale dc community --replicas=0
@@ -149,7 +152,7 @@ Then, modify the image stream to include the new tag and run the upgrade job:
 ```[bash]
 oc adm policy add-scc-to-user anyuid -z root-allowed
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
 Note that if the password is wrong, the container logs will contain a misleading error:
@@ -165,7 +168,8 @@ Database server is not PostgreSql. As OpenProject uses non standard ANSI-SQL for
 Finally, change the deployment configuration to the image tag and scale the regular deployment back to your required amount.
 
 ```[bash]
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc apply -f -
+export OPENPROJECT_HOST=openproject.example.com
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
@@ -214,8 +218,9 @@ oc process \
   -p COMMUNITY_IMAGE_TAG=10-noupload \
   -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
   -p GIT_BRANCH=stable/10-noupload \
-  -p GIT_ACCESS_TOKEN_SECRET=<secret_name> | \
-  oc create -f -
+  -p GIT_ACCESS_TOKEN_SECRET=<secret_name> \
+  -p RUBY_IMAGE_TAG=2.6-stretch | \
+  oc apply -f -
 ```
 
 Next, we can re-deploy the community POD with the fork-based image:
@@ -237,8 +242,8 @@ oc start-build community-app
 For a new minor release, merge the forked git branch with upstream and push into the forked repo. Now, rerung the build jobs:
 
 ```[bash]
-oc start-build community-fork # needs 25 minutes to build on our cluster
-oc start-build community-app # only after the community-fork build completed successfully
+oc start-build community-fork # needs ca. 30 minutes to build on our cluster
+oc start-build community-app # only after the community-fork build completed successfully, needs only a few minutes
 ```
 
 ## License for the OpenShift template

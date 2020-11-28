@@ -22,6 +22,9 @@ parameters:
 - name: GIT_ACCESS_TOKEN_SECRET
   description: Name of the OpenShift secret with the access token for the Git repository
   value: dkp-spielwiese-gitlab-read-access
+- name: RUBY_IMAGE_TAG
+  description: Tag of the base image for the OpenProject docker build
+  value: 2.6-stretch
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -70,7 +73,7 @@ objects:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: ruby:2.6-stretch
+          name: ruby:${RUBY_IMAGE_TAG}
       type: Docker
     triggers:
     - type: ConfigChange
