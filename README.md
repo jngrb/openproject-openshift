@@ -108,11 +108,11 @@ oc project $PROJECT
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
 
-Finally, you can remove the initializer deployment. It is no longer needed.
+Finally, you can remove the initializer deployment. It is no longer needed. The service account will again be needed for upgrades.
 
 ```[bash]
 oc delete dc community-initial
-oc delete sa root-allowed
+#oc delete sa root-allowed
 ```
 
 ### 5 Settings for HTTPS
@@ -147,6 +147,7 @@ oc scale dc community --replicas=0
 Then, modify the image stream to include the new tag and run the upgrade job:
 
 ```[bash]
+oc adm policy add-scc-to-user anyuid -z root-allowed
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc create -f -
 ```
@@ -159,11 +160,14 @@ DATABASE UNSUPPORTED ERROR
 Database server is not PostgreSql. As OpenProject uses non standard ANSI-SQL for performance optimizations, using a different DBMS will break and is thus prevented.
 ```
 
+(As of 2020-09-19, the upgrade failes with a permission denied. This can be fixed by running "chown -R app:app /app/tmp/cache/DC*" at an early time of the initialization in the terminal.)
+
 Finally, change the deployment configuration to the image tag and scale the regular deployment back to your required amount.
 
 ```[bash]
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=openproject.example.com -p DATABASE_URL=postgres://openproject:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
+oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
 
 Note: if you use a custom fork, see the description below to update the forked image.
