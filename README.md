@@ -110,6 +110,14 @@ oc project $PROJECT
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc apply -f -
 ```
 
+After the regular OP container was started, you will have to fix the permissions on the data directory. Mount the PV on a cluster node and run:
+
+```[bash]
+sudo chown -R <UID>:0 assets
+```
+
+where `<UID>` is the user ID of the service account that runs the OP container.
+
 Finally, you can remove the initializer deployment. It is no longer needed. The service account will again be needed for upgrades.
 
 ```[bash]
@@ -173,6 +181,14 @@ oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/mast
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
+
+After the regular OP container was started, you will have to fix the permissions on the data directory again. Mount the PV and run:
+
+```[bash]
+sudo chown -R <UID>:0 assets
+```
+
+where `<UID>` is the user ID of the service account that runs the OP container.
 
 Note: if you use a custom fork, see the description below to update the forked image.
 
