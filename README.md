@@ -190,6 +190,8 @@ sudo chown -R <UID>:0 assets
 
 where `<UID>` is the user ID of the service account that runs the OP container.
 
+Check on page `https://$OPENPROJECT_HOSTadmin/info` that every is OK (all checks).
+
 Note: if you use a custom fork, see the description below to update the forked image.
 
 ## Open issues / ideas
@@ -229,12 +231,13 @@ oc create secret generic <secret_name> \
 Then, create a build configuration that builds the basic OpenProject image from the fork repository:
 
 ```[bash]
+export GIT_ACCESS_TOKEN_SECRET=<secret_name>
 oc process \
   -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-build-fork.yaml \
   -p COMMUNITY_IMAGE_TAG=10-noupload \
   -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
   -p GIT_BRANCH=stable/10-noupload \
-  -p GIT_ACCESS_TOKEN_SECRET=<secret_name> \
+  -p GIT_ACCESS_TOKEN_SECRET=$GIT_ACCESS_TOKEN_SECRET \
   -p RUBY_IMAGE_TAG=2.6-stretch | \
   oc apply -f -
 ```
@@ -242,11 +245,12 @@ oc process \
 Next, we can re-deploy the community POD with the fork-based image:
 
 ```[bash]
-oc process
+export OPENPROJECT_HOST=openproject.example.com
+oc process \
   -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
-  -p OPENPROJECT_HOST=openproject.example.com \
-  -p DATABASE_URL=postgres://openproject:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject \
-  -p COMMUNITY_IMAGE_KIND=ImageStreamTag
+  -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
+  -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject \
+  -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
   -p COMMUNITY_IMAGE_NAME=community-fork \
   -p COMMUNITY_IMAGE_TAG=10-noupload | \
   oc apply -f -
@@ -255,7 +259,32 @@ oc start-build community-app
 
 #### Upgrading the forked image
 
-For a new minor release, merge the forked git branch with upstream and push into the forked repo. Now, rerung the build jobs:
+For a new major release, create a new forked branch (here 11-noupload) from the stable upstream branch and cherry-pick the changes from the old fork into the new branch. Then, update the major version in the fork build job and the deployment config:
+
+```[bash]
+export OPENPROJECT_HOST=openproject.example.com
+export GIT_ACCESS_TOKEN_SECRET=<secret_name>
+oc process \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-build-fork.yaml \
+  -p COMMUNITY_IMAGE_TAG=11-noupload \
+  -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
+  -p GIT_BRANCH=stable/11-noupload \
+  -p GIT_ACCESS_TOKEN_SECRET=$GIT_ACCESS_TOKEN_SECRET \
+  -p RUBY_IMAGE_TAG=2.7.1-buster | \
+  oc apply -f -
+oc process \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
+  -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
+  -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject \
+  -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
+  -p COMMUNITY_IMAGE_NAME=community-fork \
+  -p COMMUNITY_IMAGE_TAG=11-noupload | \
+  oc apply -f -
+```
+
+For a new minor release, only merge the forked git branch with upstream and push into the forked repo.
+
+Finally for every new release, rerun the build jobs:
 
 ```[bash]
 oc start-build community-fork # needs ca. 30 minutes to build on our cluster
