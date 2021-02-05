@@ -18,7 +18,7 @@ parameters:
   value: https://github.com/jngrb/openproject-openshift.git
 - name: GIT_BRANCH
   description: branch in source repository
-  value: master
+  value: openid_connect
 - name: COMMUNITY_IMAGE_NAME
   description: Image name of the OpenProject Community Docker Image to be deployed
   value: openproject/community

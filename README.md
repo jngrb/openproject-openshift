@@ -72,7 +72,7 @@ Now, we can run the all-in-one community image for initialization (Change `<POST
 
 ```[bash]
 export OPENPROJECT_INITIAL_HOST=openproject-initial.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_SECRET=openproject-database-secret | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_SECRET=openproject-database-secret | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
@@ -114,7 +114,7 @@ When the initialization of the files and database is done, we can run the 'real'
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
 oc project $PROJECT
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
 ```
 
 After the regular OP container was started, you will have to fix the permissions on the data directory. Mount the PV on a cluster node and run:
@@ -166,8 +166,8 @@ Then, modify the image stream to include the new tag and run the upgrade job:
 
 ```[bash]
 oc adm policy add-scc-to-user anyuid -z root-allowed
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_SECRET=openproject-database-secret | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_SECRET=openproject-database-secret | oc create -f -
 ```
 
 Note that if the password is wrong, the container logs will contain a misleading error:
@@ -184,7 +184,7 @@ Finally, change the deployment configuration to the image tag and scale the regu
 
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
@@ -312,6 +312,32 @@ oc process -f apache-openidc/apache-oidc-proxy.yml
   oc apply -f -
 ```
 
+### Upgrade Job with SSO
+
+```[bash]
+oc project $PROJECT
+export EXTERNAL_OPENPROJECT_HOST=openproject.example.com
+export INTERNAL_OPENPROJECT_HOST=openproject-internal.example.com
+export GIT_ACCESS_TOKEN_SECRET=<secret_name>
+export OIDC_METADATA_URL=https://keycloak.example.com/auth/realms/master/.well-known/openid-configuration
+export OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git
+oc process -f upgrade/upgrade-pipeline.yaml \
+  -p EXTERNAL_OPENPROJECT_HOST=$EXTERNAL_OPENPROJECT_HOST \
+  -p INTERNAL_OPENPROJECT_HOST=$INTERNAL_OPENPROJECT_HOST \
+  -p NEW_COMMUNITY_IMAGE_TAG=11.1 \
+  -p DOCKER_PATH=./docker/prod \
+  -p DATABASE_SECRET=openproject-database-secret \
+  -p BUILD_FORK_IMAGE=true \
+  -p FORKED_COMMUNITY_IMAGE_TAG=11-noupload \
+  -p OPENPROJECT_FORK_REPO=$OPENPROJECT_FORK_REPO \
+  -p OPENPROJECT_FORK_GIT_BRANCH=stable/11-noupload-dev \
+  -p GIT_ACCESS_TOKEN_SECRET=$GIT_ACCESS_TOKEN_SECRET \
+  -p DOCKERFILE_PATH=docker/prod/Dockerfile \
+  -p RUBY_IMAGE_TAG=2.7.2-buster \
+  -p OIDC_METADATA_URL=$OIDC_METADATA_URL | \
+  oc apply -f -
+```
+
 ## Open issues / ideas
 
 * Automatic upgrades and "maintenance mode" while upgrading (and even for other maintenance tasks)
@@ -351,7 +377,7 @@ Then, create a build configuration that builds the basic OpenProject image from 
 ```[bash]
 export GIT_ACCESS_TOKEN_SECRET=<secret_name>
 oc process \
-  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-build-fork.yaml \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject-build-fork.yaml \
   -p COMMUNITY_IMAGE_TAG=10-noupload \
   -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
   -p GIT_BRANCH=stable/10-noupload \
@@ -365,7 +391,7 @@ Next, we can re-deploy the community POD with the fork-based image:
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
 oc process \
-  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml \
   -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
   -p DATABASE_SECRET=openproject-database-secret \
   -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
@@ -383,7 +409,7 @@ For a new major release, create a new forked branch (here 11-noupload) from the 
 export OPENPROJECT_HOST=openproject.example.com
 export GIT_ACCESS_TOKEN_SECRET=<secret_name>
 oc process \
-  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-build-fork.yaml \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject-build-fork.yaml \
   -p COMMUNITY_IMAGE_TAG=11-noupload \
   -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
   -p GIT_BRANCH=stable/11-noupload \
@@ -391,7 +417,7 @@ oc process \
   -p RUBY_IMAGE_TAG=2.7.1-buster | \
   oc apply -f -
 oc process \
-  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
+  -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml \
   -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
   -p DATABASE_SECRET=openproject-database-secret \
   -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
