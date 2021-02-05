@@ -50,7 +50,8 @@ pipeline {
                             if (env.BUILD_FORK_IMAGE.toBoolean()) {
                                 config = openshift.process(template,
                                   '-p', "PVC_SIZE=${env.PVC_SIZE}",
-                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                  '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
                                   '-p', "COMMUNITY_IMAGE_KIND=ImageStreamTag",
                                   '-p', "COMMUNITY_IMAGE_NAME=community-fork",
@@ -58,7 +59,8 @@ pipeline {
                             } else {
                                 config = openshift.process(template,
                                   '-p', "PVC_SIZE=${env.PVC_SIZE}",
-                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                  '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
                                   '-p', "COMMUNITY_IMAGE_NAME=${env.COMMUNITY_IMAGE_NAME}",
                                   '-p', "COMMUNITY_IMAGE_TAG=${env.COMMUNITY_IMAGE_TAG}")
