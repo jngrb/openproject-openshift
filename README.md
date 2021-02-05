@@ -288,6 +288,30 @@ After the upgraded OP container was started, you will have to fix the permission
 sudo chown -R <UID>:0 assets
 ```
 
+### Single-Sign-On using an Apache-OpenID-Connect proxy
+
+We need a "wrapping" Apache reverse-proxy with mod_auth_openidc to get Single-Sign-On working in OpenProject.
+
+We assume that a client `apache-odic-for-openproject` is registered at the OpenID-Connect provider (e.g. Keycloak) and that the acces type is 'confidential'. We must add the value for `OPENPROJECT_AUTH__SOURCE__SSO_SECRET` and the client secret to the secrets store:
+
+```[bash]
+oc project $PROJECT
+oc create secret generic sso-auth-source-secret \
+  --from-literal=OIDC_CLIENT_SECRET=<OIDC client secret> \
+  --from-literal=OPENPROJECT_AUTH__SOURCE__SSO_SECRET=<randomstring> \
+  --type=Opaque
+```
+
+Now, we add the build and deployment configuration for the Apache-OIDC-Proxy:
+
+```[bash]
+oc project $PROJECT
+oc process -f apache-openidc/apache-oidc-proxy.yml
+  -p PUBLIC_OPENPROJECT_HOST=openproject.apps.ingenieure.cloud
+  -p OIDC_METADATA_URL=https://keycloak.apps.ingenieure.cloud/auth/realms/master/.well-known/openid-configuration | \
+  oc apply -f -
+```
+
 ## Open issues / ideas
 
 * Automatic upgrades and "maintenance mode" while upgrading (and even for other maintenance tasks)

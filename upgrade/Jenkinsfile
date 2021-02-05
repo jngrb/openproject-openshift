@@ -117,7 +117,7 @@ pipeline {
         stage('Rebuild forked openproject image') {
             steps {
                 script {
-                    if (env.BUILD_FORK_IMAGE.toBoolean()) {
+                    if (false /*env.BUILD_FORK_IMAGE.toBoolean()*/) {
                         // increase timeout
                         timeout(time: 60, unit: 'MINUTES') {
                             openshift.withCluster() {
@@ -146,7 +146,8 @@ pipeline {
                             if (env.BUILD_FORK_IMAGE.toBoolean()) {
                                 config = openshift.process(template,
                                   '-p', "PVC_SIZE=${env.PVC_SIZE}",
-                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                  '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
                                   '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
                                   '-p', "COMMUNITY_IMAGE_KIND=ImageStreamTag",
@@ -155,12 +156,29 @@ pipeline {
                             } else {
                                 config = openshift.process(template,
                                   '-p', "PVC_SIZE=${env.PVC_SIZE}",
-                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                  '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
                                   '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
                                   '-p', "COMMUNITY_IMAGE_NAME=${env.COMMUNITY_IMAGE_NAME}",
                                   '-p', "COMMUNITY_IMAGE_TAG=${env.NEW_COMMUNITY_IMAGE_TAG}")
                             }
+                            openshift.apply(config)
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Apply openidc update') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def template = readFile 'apache-openidc/apache-oidc-proxy.yml'
+                            def config = openshift.process(template,
+                                '-p', "PUBLIC_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                '-p', "OIDC_METADATA_URL=${env.OIDC_METADATA_URL}")
                             openshift.apply(config)
                         }
                     }

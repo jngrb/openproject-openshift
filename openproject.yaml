@@ -19,15 +19,18 @@ parameters:
 - name: COMMUNITY_IMAGE_TAG
   description: Tag of the OpenProject Community Docker Image to be deployed
   value: '10.6'
-- name: OPENPROJECT_HOST
-  description: Application URL of Nextcloud (Route/host)
+- name: INTERNAL_OPENPROJECT_HOST
+  description: Private application URL of Nextcloud (Route/host)
+  required: true
+- name: EXTERNAL_OPENPROJECT_HOST
+  description: Public application URL of Nextcloud (Route/host)
   required: true
 - name: OPENPROJECT_DOCKERFILE_REPO
   description: OpenProject Dockerfile source repository
   value: https://github.com/jngrb/openproject-openshift.git
 - name: GIT_BRANCH
   description: branch in source repository
-  value: master
+  value: openid_connect
 - name: PVC_SIZE
   description: PVC size for Apps, Config and Data
   value: 4Gi
@@ -37,9 +40,15 @@ parameters:
 - name: DATABASE_SECRET
   description: Name of the secret with the database reference DATABASE_URL
   value: openproject-database-secret
+- name: SSO_SECRET
+  description: Name of the secret with the SSO secrets
+  value: sso-auth-source-secret
 - name: DOCKER_PATH
   description: Path to entrypoint inside docker image
   value: ./docker
+- name: OIDC_LOGOUT_PATH
+  description: Logout route for SSO
+  value: oidc_logout
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -144,6 +153,15 @@ objects:
               value: 'memcached.openproject.svc:11211'
             - name: PASSENGER_START_TIMEOUT
               value: "120"
+            - name: OPENPROJECT_AUTH__SOURCE__SSO_HEADER
+              value: "X-Remote-User"
+            - name: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
+                  name: ${SSO_SECRET}
+            - name: OPENPROJECT_AUTH__SOURCE__SSO_LOGOUT__URL
+              value: "https://${EXTERNAL_OPENPROJECT_HOST}/${OIDC_LOGOUT_PATH}"
           readinessProbe:
             failureThreshold: 3
             initialDelaySeconds: 120
@@ -262,7 +280,7 @@ objects:
       app: openproject
     name: community
   spec:
-    host: ${OPENPROJECT_HOST}
+    host: ${INTERNAL_OPENPROJECT_HOST}
     port:
       targetPort: http
     tls:

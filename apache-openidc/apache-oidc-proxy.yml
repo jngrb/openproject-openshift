@@ -1,0 +1,212 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: apache-oidc-proxy
+parameters:
+- name: APACHE_OIDC_DOCKERFILE_REPO
+  description: Dockerfile source repository for the Apache OIDC proxy
+  value: https://github.com/jngrb/openproject-openshift.git
+- name: GIT_BRANCH
+  description: branch in source repository
+  value: openid_connect
+- name: PUBLIC_OPENPROJECT_HOST
+  description: Public host of the OpenProject service
+  value: openproject.apps.ingenieure.cloud
+- name: INTERNAL_OPENPROJECT_SERVICE
+  description: Internal host of the OpenProject service
+  value: community.openproject.svc
+- name: OIDC_PASS_PHRASE
+  description: 'generate a random secret'
+  generate: expression
+  from: "[a-zA-Z0-9]{12}"
+- name: OIDC_METADATA_URL
+  description: URL to Keycloak metadata
+  value: https://keycloak.apps.ingenieure.cloud/auth/realms/master/.well-known/openid-configuration
+- name: OIDC_CLIENT_ID
+  description: ID of the openid connect client
+  value: apache-odic-for-openproject
+- name: OIDC_REDIRECT_URL
+  description: Redirect URL for the apache2-oidc-proxy (must not exist)
+  value: /openidc
+- name: OIDC_REMOTE_USER_CLAIM
+  description: Claim from which to take the username
+  value: preferred_username
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    labels:
+      build: apache-oidc-proxy
+      app: openproject
+    name: apache-oidc-proxy
+  spec:
+    tags:
+    - annotations: null
+      from:
+        kind: DockerImage
+        name: caladreas/apache2-openidc-docker:0.2.0
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      build: apache-oidc-proxy
+      app: openproject
+    name: apache-oidc-proxy
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: apache-oidc-proxy:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      contextDir: services/openproject/apache-openidc
+      git:
+        uri: ${APACHE_OIDC_DOCKERFILE_REPO}
+        ref: ${GIT_BRANCH}
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: caladreas/apache2-openidc-docker:0.2.0
+      type: Docker
+    triggers:
+    - type: ConfigChange
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: openproject
+    name: apache-oidc-proxy
+  spec:
+    replicas: 1
+    selector:
+      app: openproject
+      deploymentconfig: apache-oidc-proxy
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: openproject
+          deploymentconfig: apache-oidc-proxy
+      spec:
+        nodeSelector:
+          appclass: main
+        containers:
+        - env:
+          - name: OIDC_PASS_PHRASE
+            value: ${OIDC_PASS_PHRASE}
+          - name: OIDC_METADATA_URL
+            value: ${OIDC_METADATA_URL}
+          - name: OIDC_CLIENT_ID
+            value: ${OIDC_CLIENT_ID}
+          - name: OIDC_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: OIDC_CLIENT_SECRET
+                name: sso-auth-source-secret
+          - name: OIDC_REDIRECT_URL
+            value: ${OIDC_REDIRECT_URL}
+          - name: OIDC_REMOTE_USER_CLAIM
+            value: ${OIDC_REMOTE_USER_CLAIM}
+          - name: REMOTE_USER_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
+                name: sso-auth-source-secret
+          - name: SERVER_NAME
+            value: ${PUBLIC_OPENPROJECT_HOST}
+          - name: PROXY_PASS_LOCATION
+            value: http://${INTERNAL_OPENPROJECT_SERVICE}/
+          image: apache-oidc-proxy
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 1
+          name: apache-oidc-proxy
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - apache-oidc-proxy
+        from:
+          kind: ImageStreamTag
+          name: apache-oidc-proxy:latest
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: openproject
+    name: apache-oidc-proxy
+  spec:
+    ports:
+    - name: 80-tcp
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: openproject
+      deploymentconfig: apache-oidc-proxy
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    labels:
+      app: openproject
+    name: apache-oidc-proxy
+  spec:
+    host: ${PUBLIC_OPENPROJECT_HOST}
+    port:
+      targetPort: http
+    tls:
+      insecureEdgeTerminationPolicy: Redirect
+      termination: edge
+    to:
+      kind: Service
+      name: apache-oidc-proxy
+      weight: 100
+    wildcardPolicy: None
