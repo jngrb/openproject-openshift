@@ -68,7 +68,7 @@ objects:
     resources: {}
     runPolicy: Serial
     source:
-      contextDir: services/openproject/apache-openidc
+      contextDir: apache-openidc
       git:
         uri: ${APACHE_OIDC_DOCKERFILE_REPO}
         ref: ${GIT_BRANCH}
@@ -201,7 +201,7 @@ objects:
   spec:
     host: ${PUBLIC_OPENPROJECT_HOST}
     port:
-      targetPort: http
+      targetPort: 80-tcp
     tls:
       insecureEdgeTerminationPolicy: Redirect
       termination: edge
