@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: openproject
+  annotations:
+    description: "OpenProject - Online Open-Source Project Management"
+    tags: "projectmanagement,openproject"
+    iconClass: fa-cloud-upload
+    template.openshift.io/provider-display-name: "jngrb"
+    template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
+    template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
+parameters:
+- name: OPENPROJECT_HOST
+  description: Application URL of OpenProject (Route/host)
+  required: true
+- name: JENKINSFILE_REPO
+  description: Jenkins source repository
+  value: https://github.com/jngrb/openproject-openshift.git
+- name: GIT_BRANCH
+  description: branch in source repository
+  value: master
+- name: COMMUNITY_IMAGE_NAME
+  description: Image name of the OpenProject Community Docker Image to be deployed
+  value: openproject/community
+- name: NEW_COMMUNITY_IMAGE_TAG
+  description: Tag of the Openproject Docker Image to upgrade to
+  value: "11.1"
+- name: DOCKER_PATH
+  description: Path to entrypoint inside docker image
+  value: ./docker
+- name: BUILD_FORK_IMAGE
+  description: Care for a forked OpenProject repository
+  value: "false"
+- name: FORKED_COMMUNITY_IMAGE_TAG
+  description: Tag of the Openproject Docker Image with the forked image (only needed for BUILD_FORK_IMAGE=true)
+  value: 11-noupload
+- name: OPENPROJECT_FORK_REPO
+  description: OpenProject Dockerfile source repository (only needed for BUILD_FORK_IMAGE=true)
+  value: https://gitlab.com/ingenieure-ohne-grenzen/openproject.git
+- name: OPENPROJECT_FORK_GIT_BRANCH
+  description: branch in fork repository (only needed for BUILD_FORK_IMAGE=true)
+  value: stable/11-noupload
+- name: GIT_ACCESS_TOKEN_SECRET
+  description: Name of the OpenShift secret with the access token for the fork repository (only needed for BUILD_FORK_IMAGE=true)
+  value: dkp-spielwiese-gitlab-read-access
+- name: DOCKERFILE_PATH
+  description: Path to the productive docker file
+  value: ./Dockerfile
+- name: RUBY_IMAGE_TAG
+  description: Tag of the base image for the forked OpenProject docker build (only needed for BUILD_FORK_IMAGE=true)
+  value: 2.6-stretch
+- name: DATABASE_SECRET
+  description: Name of the secret with the database reference DATABASE_URL
+  value: openproject-database-secret
+- name: PVC_SIZE
+  description: PVC size for Apps, Config and Data
+  value: 4Gi
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+    name: upgrade-pipeline
+  name: upgrade-pipeline
+  spec:
+    source:
+      type: Git
+      git:
+        uri: "${JENKINSFILE_REPO}"
+        ref: "${GIT_BRANCH}"
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        jenkinsfilePath: upgrade/Jenkinsfile
+        env:
+          - name: OPENPROJECT_HOST
+            value: "${OPENPROJECT_HOST}"
+          - name: COMMUNITY_IMAGE_NAME
+            value: "${COMMUNITY_IMAGE_NAME}"
+          - name: NEW_COMMUNITY_IMAGE_TAG
+            value: "${NEW_COMMUNITY_IMAGE_TAG}"
+          - name: DOCKER_PATH
+            value: "${DOCKER_PATH}"
+          - name: BUILD_FORK_IMAGE
+            value: "${BUILD_FORK_IMAGE}"
+          - name: FORKED_COMMUNITY_IMAGE_TAG
+            value: "${FORKED_COMMUNITY_IMAGE_TAG}"
+          - name: OPENPROJECT_FORK_REPO
+            value: "${OPENPROJECT_FORK_REPO}"
+          - name: OPENPROJECT_FORK_GIT_BRANCH
+            value: "${OPENPROJECT_FORK_GIT_BRANCH}"
+          - name: GIT_ACCESS_TOKEN_SECRET
+            value: "${GIT_ACCESS_TOKEN_SECRET}"
+          - name: DOCKERFILE_PATH
+            value: "${DOCKERFILE_PATH}"
+          - name: RUBY_IMAGE_TAG
+            value: "${RUBY_IMAGE_TAG}"
+          - name: DATABASE_SECRET
+            value: "${DATABASE_SECRET}"
+          - name: PVC_SIZE
+            value: "${PVC_SIZE}"

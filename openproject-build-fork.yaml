@@ -25,6 +25,9 @@ parameters:
 - name: RUBY_IMAGE_TAG
   description: Tag of the base image for the OpenProject docker build
   value: 2.6-stretch
+- name: DOCKERFILE_PATH
+  description: Path to the productive docker file
+  value: ./Dockerfile
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -69,8 +72,10 @@ objects:
       type: Git
       sourceSecret:
         name: "${GIT_ACCESS_TOKEN_SECRET}"
+      contextDir: .
     strategy:
       dockerStrategy:
+        dockerfilePath: ${DOCKERFILE_PATH}
         from:
           kind: DockerImage
           name: ruby:${RUBY_IMAGE_TAG}

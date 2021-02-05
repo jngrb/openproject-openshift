@@ -1,6 +1,7 @@
 FROM openproject/community:10.6
 # NOTE: the FROM line will be replaced by Openshift according to the BuildConfig
-RUN /app/docker/entrypoint.sh /bin/bash
+ARG DOCKER_PATH=./docker
+RUN cd /app && ${DOCKER_PATH}/entrypoint.sh /bin/bash
 ARG APP_PATH=/app
 RUN chgrp -R 0 /home/app && \
     chmod -R g=u /home/app && \
@@ -13,7 +14,7 @@ RUN chgrp -R 0 /home/app && \
     chmod -R g=u /tmp/op_uploaded_files
 COPY uid_entrypoint.sh /app/docker/
 ENTRYPOINT [ "/app/docker/uid_entrypoint.sh" ]
-CMD [ "./docker/entrypoint.sh", "/bin/bash" ]
+CMD [ "${DOCKER_PATH}/entrypoint.sh", "/bin/bash" ]
 #USER app:app # UID==1000,GID=1000
 # OpenShift needs the GID=0 setting
 USER 1000:0

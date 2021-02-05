@@ -61,11 +61,18 @@ oc policy add-role-to-user system:deployer -z root-allowed
 oc adm policy add-scc-to-user anyuid -z root-allowed
 ```
 
+For security, the postgres access configuration must be stored in a new secret. The secret of the postgresql deployment cannot be used because the information is in the wrong format.
+
+```[bash]
+oc create secret generic openproject-database-secret --type=Opaque \
+  --from-literal=DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject
+```
+
 Now, we can run the all-in-one community image for initialization (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.).
 
 ```[bash]
 export OPENPROJECT_INITIAL_HOST=openproject-initial.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_SECRET=openproject-database-secret | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
@@ -107,7 +114,7 @@ When the initialization of the files and database is done, we can run the 'real'
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
 oc project $PROJECT
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
 ```
 
 After the regular OP container was started, you will have to fix the permissions on the data directory. Mount the PV on a cluster node and run:
@@ -160,7 +167,7 @@ Then, modify the image stream to include the new tag and run the upgrade job:
 ```[bash]
 oc adm policy add-scc-to-user anyuid -z root-allowed
 oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade-stream.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG | oc apply -f -
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/upgrade/openproject-upgrade.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p DATABASE_SECRET=openproject-database-secret | oc create -f -
 ```
 
 Note that if the password is wrong, the container logs will contain a misleading error:
@@ -177,7 +184,7 @@ Finally, change the deployment configuration to the image tag and scale the regu
 
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```
@@ -193,6 +200,93 @@ where `<UID>` is the user ID of the service account that runs the OP container.
 Check on page `https://$OPENPROJECT_HOSTadmin/info` that every is OK (all checks).
 
 Note: if you use a custom fork, see the description below to update the forked image.
+
+### Semi-automatic Jenkins update and upgrade
+
+We use an (ephemeral) Jenkins for automatic deployments of configuration updates and image upgrades. First, deploy the Jekins POD:
+
+```[bash]
+oc project $PROJECT
+oc -n openshift process jenkins-ephemeral | oc create -f -
+```
+
+As as the main PODs, you might want to deploy the Jenkins container only on selected nodes. (E.g., you can the same node selector, 'appclass=main'.)
+
+```[bash]
+oc patch dc jenkins --patch='{"spec":{"template":{"spec":{"nodeSelector":{"appclass":"main"}}}}}'
+```
+
+Note, Jenkins might take a long time to deploy.
+
+#### Update pipeline to reset configuration
+
+After having logged into Jenkins for the first time, you can roll out the JenkinsPipeline build configuration.
+
+```[bash]
+oc process -f update-pipeline.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p COMMUNITY_IMAGE_TAG=11.1 -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+```
+
+Or replace instead use this line if the pipeline is for the "forked image".
+
+```[bash]
+oc process -f update-pipeline.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p BUILD_FORK_IMAGE=true -p COMMUNITY_IMAGE_TAG=10-noupload -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+```
+
+This pipeline updates the deployment configuration to the newest version from the template as checked in on the master branch on Github. Then, it builds the fork and the deployment image.
+
+#### Upgrade pipeline to migrate to new version
+
+For each new version to upgrade to, roll out the JenkinsPipeline upgrade configuration. Either for the regular OpenProject image:
+
+```[bash]
+oc process -f upgrade/upgrade-pipeline.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p NEW_COMMUNITY_IMAGE_TAG=11.1 DATABASE_SECRET=openproject-database-secret | oc apply -f -
+```
+
+Or alternatively for a OpenProject image from a fork repository (see below):
+
+```[bash]
+export GIT_ACCESS_TOKEN_SECRET=<secret_name>
+oc process -f upgrade/upgrade-pipeline.yaml \
+  -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
+  -p NEW_COMMUNITY_IMAGE_TAG=11.1 \
+  -p DOCKER_PATH=./docker/prod \
+  -p DATABASE_SECRET=openproject-database-secret -p BUILD_FORK_IMAGE=true \
+  -p FORKED_COMMUNITY_IMAGE_TAG=11-noupload \
+  -p OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git \
+  -p OPENPROJECT_FORK_GIT_BRANCH=stable/11-noupload-dev \
+  -p GIT_ACCESS_TOKEN_SECRET=$GIT_ACCESS_TOKEN_SECRET \
+  -p DOCKERFILE_PATH=docker/prod/Dockerfile \
+  -p RUBY_IMAGE_TAG=2.7.2-buster | \
+  oc apply -f -
+```
+
+Before running the upgrade job, there are some manual preparation steps.
+
+```[bash]
+oc adm policy add-scc-to-user anyuid -z root-allowed
+```
+
+If you want to upgrade to a forked image, also update the fork repo before starting the pipeline job. For a new major release, create a new forked branch from the stable upstream branch and cherry-pick the changes from the old fork into the new branch. For a new minor release, only merge the forked git branch with upstream and push into the forked repo.
+
+```[bash]
+cd /path/to/clone/of/fork/repo
+git checkout stable/11-noupload
+git fetch upstream
+git merge upstream/stable/11
+git push
+```
+
+Now run the pipeline job for the upgrade. After the upgrade job completed, the following cleanup tasks are necessary:
+
+```[bash]
+oc adm policy remove-scc-from-user anyuid -z root-allowed
+```
+
+After the upgraded OP container was started, you will have to fix the permissions on the data directory again. Mount the PV and run:
+
+```[bash]
+sudo chown -R <UID>:0 assets
+```
 
 ## Open issues / ideas
 
@@ -249,7 +343,7 @@ export OPENPROJECT_HOST=openproject.example.com
 oc process \
   -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
   -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
-  -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject \
+  -p DATABASE_SECRET=openproject-database-secret \
   -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
   -p COMMUNITY_IMAGE_NAME=community-fork \
   -p COMMUNITY_IMAGE_TAG=10-noupload | \
@@ -275,7 +369,7 @@ oc process \
 oc process \
   -f https://raw.githubusercontent.com/jngrb/openproject-openshift/master/openproject.yaml \
   -p OPENPROJECT_HOST=$OPENPROJECT_HOST \
-  -p DATABASE_URL=postgres://$POSTGRESQL_USER:$POSTGRESQL_PASSWORD@postgresql.openproject.svc:5432/openproject \
+  -p DATABASE_SECRET=openproject-database-secret \
   -p COMMUNITY_IMAGE_KIND=ImageStreamTag \
   -p COMMUNITY_IMAGE_NAME=community-fork \
   -p COMMUNITY_IMAGE_TAG=11-noupload | \

@@ -16,10 +16,12 @@ parameters:
 - name: SECRET_KEY_BASE
   description: Secret key for the OpenProject instance
   value: dkp-spielwiese
-- name: DATABASE_URL
-  description: Database reference (usually postgresql)
-  value: >-
-    postgres://openproject:openproject@postgresql.openproject.svc:5432/openproject
+- name: DATABASE_SECRET
+  description: Name of the secret with the database reference DATABASE_URL
+  value: openproject-database-secret
+- name: DOCKER_PATH
+  description: Path to entrypoint inside docker image
+  value: ./docker
 objects:
 - apiVersion: batch/v1
   kind: Job
@@ -39,14 +41,17 @@ objects:
           image: openproject/community:${COMMUNITY_IMAGE_TAG}
           imagePullPolicy: Always
           command:
-            - ./docker/entrypoint.sh
+            - ${DOCKER_PATH}/entrypoint.sh
           args:
-            - ./docker/seeder
+            - ${DOCKER_PATH}/seeder
           env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}
             - name: DATABASE_URL
-              value: ${DATABASE_URL}
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: ${DATABASE_SECRET}
             - name: RAILS_CACHE_STORE
               value: file_store
           ports:

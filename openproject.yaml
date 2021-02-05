@@ -34,10 +34,12 @@ parameters:
 - name: SECRET_KEY_BASE
   description: Secret key for the OpenProject instance
   value: dkp-spielwiese
-- name: DATABASE_URL
-  description: Database reference (usually postgresql)
-  value: >-
-    postgres://openproject:openproject@postgresql.openproject.svc:5432/openproject
+- name: DATABASE_SECRET
+  description: Name of the secret with the database reference DATABASE_URL
+  value: openproject-database-secret
+- name: DOCKER_PATH
+  description: Path to entrypoint inside docker image
+  value: ./docker
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -87,7 +89,9 @@ objects:
           name: ${COMMUNITY_IMAGE_NAME}:${COMMUNITY_IMAGE_TAG}
         buildArgs:
           - name: COMMUNITY_IMAGE_TAG
-          - value: '${COMMUNITY_IMAGE_TAG}'
+            value: '${COMMUNITY_IMAGE_TAG}'
+          - name: DOCKER_PATH
+            value: '${DOCKER_PATH}'
       type: Docker
     triggers:
     - type: ConfigChange
@@ -124,13 +128,16 @@ objects:
         - command:
             - /app/docker/uid_entrypoint.sh
           args:
-            - ./docker/entrypoint.sh
-            - ./docker/web
+            - ${DOCKER_PATH}/entrypoint.sh
+            - ${DOCKER_PATH}/web
           env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}
             - name: DATABASE_URL
-              value: ${DATABASE_URL}
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: ${DATABASE_SECRET}
             - name: RAILS_CACHE_STORE
               value: memcache
             - name: CACHE_MEMCACHE_SERVER
@@ -169,13 +176,16 @@ objects:
         - command:
             - /app/docker/uid_entrypoint.sh
           args:
-            - ./docker/entrypoint.sh
-            - ./docker/worker
+            - ${DOCKER_PATH}/entrypoint.sh
+            - ${DOCKER_PATH}/worker
           env:
             - name: SECRET_KEY_BASE
               value: ${SECRET_KEY_BASE}
             - name: DATABASE_URL
-              value: ${DATABASE_URL}
+              valueFrom:
+                secretKeyRef:
+                  key: DATABASE_URL
+                  name: ${DATABASE_SECRET}
             - name: RAILS_CACHE_STORE
               value: memcache
             - name: CACHE_MEMCACHE_SERVER

@@ -1,0 +1,211 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build info') {
+            steps {
+              sh 'env'
+            }
+        }
+
+        stage('Checkout sources') {
+            steps {
+                checkout changelog: false, poll: false,
+                    scm: [$class: 'GitSCM', branches: [[name: "${env.GIT_BRANCH}"]],
+                    doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [],
+                    userRemoteConfigs: [[url: "${env.GIT_URL}"]]]
+            }
+        }
+
+        stage('Apply upgrade image stream') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def template = readFile 'upgrade/openproject-upgrade-stream.yaml'
+                            def config = openshift.process(template,
+                                '-p', "COMMUNITY_IMAGE_TAG=${env.NEW_COMMUNITY_IMAGE_TAG}")
+                            openshift.apply(config)
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Scale down deployment to zero') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def templateName = 'community'
+                            def rm = openshift.selector("dc", templateName)
+                              .scale("--replicas=0")
+                            def pods = openshift.selector("dc", templateName)
+                                  .related('pods')
+                            if (pods.count() != 0) {
+                                // wait until all pods are shut down
+                                timeout(10) {
+                                    while (true) {
+                                        if (pods.count() == 0)
+                                            break;
+                                        echo "Waiting another second"
+                                        sleep(1)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Apply and run upgrade job') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def template = readFile 'upgrade/openproject-upgrade.yaml'
+                            def config = openshift.process(template,
+                                '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
+                                '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
+                                '-p', "COMMUNITY_IMAGE_TAG=${env.NEW_COMMUNITY_IMAGE_TAG}")
+                            def job = openshift.create(config)
+
+                            timeout(10) {
+                                def jobs = job.related('pods')
+
+                                jobs.watch {
+                                    echo "So far, ${job.name()} has created pods: ${it.names()}"
+
+                                    // End the watch only once a build object has been created
+                                    return it.count() > 0
+                                }
+
+                                jobs.untilEach(1) {
+                                    //echo "Name: ${it.name()}"
+                                    //echo "Status: ${it.object().status}"
+                                    return (it.object().status.phase == "Succeeded")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Update for forked-image build job') {
+            steps {
+                script {
+                    if (env.BUILD_FORK_IMAGE.toBoolean()) {
+                        openshift.withCluster() {
+                            openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                                def template = readFile 'openproject-build-fork.yaml'
+                                def config = openshift.process(template,
+                                    '-p', "COMMUNITY_IMAGE_TAG=${env.FORKED_COMMUNITY_IMAGE_TAG}",
+                                    '-p', "OPENPROJECT_FORK_REPO=${env.OPENPROJECT_FORK_REPO}",
+                                    '-p', "GIT_BRANCH=${env.OPENPROJECT_FORK_GIT_BRANCH}",
+                                    '-p', "GIT_ACCESS_TOKEN_SECRET=${env.GIT_ACCESS_TOKEN_SECRET}",
+                                    '-p', "DOCKERFILE_PATH=${env.DOCKERFILE_PATH}",
+                                    '-p', "RUBY_IMAGE_TAG=${env.RUBY_IMAGE_TAG}")
+                                openshift.apply(config)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Rebuild forked openproject image') {
+            steps {
+                script {
+                    if (env.BUILD_FORK_IMAGE.toBoolean()) {
+                        // increase timeout
+                        timeout(time: 60, unit: 'MINUTES') {
+                            openshift.withCluster() {
+                                openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                                    def buildSelector = openshift.selector("bc", 'community-fork')
+                                    buildSelector.startBuild("--follow=true")
+                                    /* Alternatively to "--follow=true":
+                                        * Do some parallel tasks while building.
+                                        * When needed to wait for the build again and show logs, do:
+                                        * build.logs('-f') */
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Apply configuration update') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def template = readFile 'openproject.yaml'
+                            def config = null
+                            if (env.BUILD_FORK_IMAGE.toBoolean()) {
+                                config = openshift.process(template,
+                                  '-p', "PVC_SIZE=${env.PVC_SIZE}",
+                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
+                                  '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
+                                  '-p', "COMMUNITY_IMAGE_KIND=ImageStreamTag",
+                                  '-p', "COMMUNITY_IMAGE_NAME=community-fork",
+                                  '-p', "COMMUNITY_IMAGE_TAG=${env.FORKED_COMMUNITY_IMAGE_TAG}")
+                            } else {
+                                config = openshift.process(template,
+                                  '-p', "PVC_SIZE=${env.PVC_SIZE}",
+                                  '-p', "OPENPROJECT_HOST=${env.OPENPROJECT_HOST}",
+                                  '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
+                                  '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
+                                  '-p', "COMMUNITY_IMAGE_NAME=${env.COMMUNITY_IMAGE_NAME}",
+                                  '-p', "COMMUNITY_IMAGE_TAG=${env.NEW_COMMUNITY_IMAGE_TAG}")
+                            }
+                            openshift.apply(config)
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Rebuild openproject-for-openshift image') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            // set timeout to 10 minutes
+                            timeout(time: 10, unit: 'MINUTES') {
+                                def buildSelector = openshift.selector("bc", 'community-app')
+                                buildSelector.startBuild("--follow=true")
+                                /* Alternatively to "--follow=true":
+                                     * Do some parallel tasks while building.
+                                     * When needed to wait for the build again and show logs, do:
+                                     * build.logs('-f') */
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Wait for rollout to complete') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def templateName = 'community'
+                            /*def rm = openshift.selector("dc", templateName)
+                              .rollout().latest()*/
+                            timeout(10) {
+                                openshift.selector("dc", templateName)
+                                  .related('pods').untilEach(1) {
+                                    return (it.object().status.phase == "Running")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
