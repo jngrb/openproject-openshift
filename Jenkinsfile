@@ -53,6 +53,7 @@ pipeline {
                                   '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
                                   '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
+                                  '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
                                   '-p', "COMMUNITY_IMAGE_KIND=ImageStreamTag",
                                   '-p', "COMMUNITY_IMAGE_NAME=community-fork",
                                   '-p', "COMMUNITY_IMAGE_TAG=${env.COMMUNITY_IMAGE_TAG}")
@@ -62,6 +63,7 @@ pipeline {
                                   '-p', "EXTERNAL_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
                                   '-p', "INTERNAL_OPENPROJECT_HOST=${env.INTERNAL_OPENPROJECT_HOST}",
                                   '-p', "DATABASE_SECRET=${env.DATABASE_SECRET}",
+                                  '-p', "DOCKER_PATH=${env.DOCKER_PATH}",
                                   '-p', "COMMUNITY_IMAGE_NAME=${env.COMMUNITY_IMAGE_NAME}",
                                   '-p', "COMMUNITY_IMAGE_TAG=${env.COMMUNITY_IMAGE_TAG}")
                             }
