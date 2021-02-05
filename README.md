@@ -326,6 +326,7 @@ export OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproj
 oc process -f update-pipeline.yaml \
   -p EXTERNAL_OPENPROJECT_HOST=$EXTERNAL_OPENPROJECT_HOST \
   -p INTERNAL_OPENPROJECT_HOST=$INTERNAL_OPENPROJECT_HOST \
+  -p DOCKER_PATH=./docker/prod \
   -p BUILD_FORK_IMAGE=true \
   -p COMMUNITY_IMAGE_TAG=11-noupload \
   -p DATABASE_SECRET=openproject-database-secret \

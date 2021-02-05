@@ -28,6 +28,9 @@ parameters:
 - name: COMMUNITY_IMAGE_TAG
   description: Tag of the Openproject Docker Image to deploy
   value: "10.6"
+- name: DOCKER_PATH
+  description: Path to entrypoint inside docker image
+  value: ./docker
 - name: BUILD_FORK_IMAGE
   description: Care for a forked OpenProject repository
   value: "false"
@@ -66,6 +69,8 @@ objects:
             value: "${COMMUNITY_IMAGE_NAME}"
           - name: COMMUNITY_IMAGE_TAG
             value: "${COMMUNITY_IMAGE_TAG}"
+          - name: DOCKER_PATH
+            value: "${DOCKER_PATH}"
           - name: BUILD_FORK_IMAGE
             value: "${BUILD_FORK_IMAGE}"
           - name: DATABASE_SECRET
