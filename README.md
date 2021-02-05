@@ -312,7 +312,7 @@ oc process -f apache-openidc/apache-oidc-proxy.yml
   oc apply -f -
 ```
 
-### Upgrade Job with SSO
+### Update and upgrade jobs with SSO
 
 ```[bash]
 oc project $PROJECT
@@ -321,6 +321,18 @@ export INTERNAL_OPENPROJECT_HOST=openproject-internal.example.com
 export GIT_ACCESS_TOKEN_SECRET=<secret_name>
 export OIDC_METADATA_URL=https://keycloak.example.com/auth/realms/master/.well-known/openid-configuration
 export OPENPROJECT_FORK_REPO=https://gitlab.com/ingenieure-ohne-grenzen/openproject.git
+
+# update job
+oc process -f update-pipeline.yaml \
+  -p EXTERNAL_OPENPROJECT_HOST=$EXTERNAL_OPENPROJECT_HOST \
+  -p INTERNAL_OPENPROJECT_HOST=$INTERNAL_OPENPROJECT_HOST \
+  -p BUILD_FORK_IMAGE=true \
+  -p COMMUNITY_IMAGE_TAG=11-noupload \
+  -p DATABASE_SECRET=openproject-database-secret \
+  -p OIDC_METADATA_URL=$OIDC_METADATA_URL | \
+  oc apply -f -
+
+# upgrade job
 oc process -f upgrade/upgrade-pipeline.yaml \
   -p EXTERNAL_OPENPROJECT_HOST=$EXTERNAL_OPENPROJECT_HOST \
   -p INTERNAL_OPENPROJECT_HOST=$INTERNAL_OPENPROJECT_HOST \

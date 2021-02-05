@@ -107,3 +107,5 @@ objects:
             value: "${DATABASE_SECRET}"
           - name: PVC_SIZE
             value: "${PVC_SIZE}"
+          - name: OIDC_METADATA_URL
+            value: "${OIDC_METADATA_URL}"

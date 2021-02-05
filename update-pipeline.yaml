@@ -10,8 +10,11 @@ metadata:
     template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
     template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
 parameters:
-- name: OPENPROJECT_HOST
-  description: Application URL of OpenProject (Route/host)
+- name: EXTERNAL_OPENPROJECT_HOST
+  description: Public application URL of OpenProject (Route/host)
+  required: true
+- name: INTERNAL_OPENPROJECT_HOST
+  description: Private application URL of OpenProject (Route/host)
   required: true
 - name: JENKINSFILE_REPO
   description: Jenkins source repository
@@ -34,6 +37,9 @@ parameters:
 - name: PVC_SIZE
   description: PVC size for Apps, Config and Data
   value: 4Gi
+- name: OIDC_METADATA_URL
+  description: Configuration URL for the OpenID-Connect provider
+  value: https://keycloak.apps.ingenieure.cloud/auth/realms/master/.well-known/openid-configuration
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -52,8 +58,10 @@ objects:
       jenkinsPipelineStrategy:
         jenkinsfilePath: Jenkinsfile
         env:
-          - name: OPENPROJECT_HOST
-            value: "${OPENPROJECT_HOST}"
+          - name: EXTERNAL_OPENPROJECT_HOST
+            value: "${EXTERNAL_OPENPROJECT_HOST}"
+          - name: INTERNAL_OPENPROJECT_HOST
+            value: "${INTERNAL_OPENPROJECT_HOST}"
           - name: COMMUNITY_IMAGE_NAME
             value: "${COMMUNITY_IMAGE_NAME}"
           - name: COMMUNITY_IMAGE_TAG
@@ -64,3 +72,5 @@ objects:
             value: "${DATABASE_SECRET}"
           - name: PVC_SIZE
             value: "${PVC_SIZE}"
+          - name: OIDC_METADATA_URL
+            value: "${OIDC_METADATA_URL}"

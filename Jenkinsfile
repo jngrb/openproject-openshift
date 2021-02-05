@@ -70,6 +70,22 @@ pipeline {
             }
         }
 
+        stage('Apply openidc update') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def template = readFile 'apache-openidc/apache-oidc-proxy.yml'
+                            def config = openshift.process(template,
+                                '-p', "PUBLIC_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                '-p', "OIDC_METADATA_URL=${env.OIDC_METADATA_URL}")
+                            openshift.apply(config)
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Rebuild openproject-for-openshift image') {
             steps {
                 script {
@@ -91,6 +107,28 @@ pipeline {
             }
         }
 
+        stage('Rebuild OpenID-Connect image') {
+            steps {
+                script {
+                    if (false /*env.BUILD_FORK_IMAGE.toBoolean()*/) {
+                        // increase timeout
+                        timeout(time: 60, unit: 'MINUTES') {
+                            openshift.withCluster() {
+                                openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                                    def buildSelector = openshift.selector("bc", 'apache-oidc-proxy')
+                                    buildSelector.startBuild("--follow=true")
+                                    /* Alternatively to "--follow=true":
+                                        * Do some parallel tasks while building.
+                                        * When needed to wait for the build again and show logs, do:
+                                        * build.logs('-f') */
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Wait for rollout to complete') {
             steps {
                 script {
@@ -101,6 +139,16 @@ pipeline {
                               .rollout().latest()*/
                             timeout(10) {
                                 openshift.selector("dc", templateName)
+                                  .related('pods').untilEach(1) {
+                                    return (it.object().status.phase == "Running")
+                                }
+                            }
+
+                            def templateName2 = 'apache-oidc-proxy'
+                            /*def rm = openshift.selector("dc", templateName2)
+                              .rollout().latest()*/
+                            timeout(10) {
+                                openshift.selector("dc", templateName2)
                                   .related('pods').untilEach(1) {
                                     return (it.object().status.phase == "Running")
                                 }

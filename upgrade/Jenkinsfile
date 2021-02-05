@@ -117,7 +117,7 @@ pipeline {
         stage('Rebuild forked openproject image') {
             steps {
                 script {
-                    if (false /*env.BUILD_FORK_IMAGE.toBoolean()*/) {
+                    if (env.BUILD_FORK_IMAGE.toBoolean()) {
                         // increase timeout
                         timeout(time: 60, unit: 'MINUTES') {
                             openshift.withCluster() {
