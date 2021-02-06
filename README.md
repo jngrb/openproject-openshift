@@ -68,7 +68,7 @@ oc create secret generic openproject-database-secret --type=Opaque \
   --from-literal=DATABASE_URL=postgres://<POSTGRESQL-USER>:<POSTGRESQL-PASSWORD>@postgresql.openproject.svc:5432/openproject
 ```
 
-Now, we can run the all-in-one community image for initialization (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.).
+Now, we can run the all-in-one community image for initialization. (Change `<POSTGRESQL-PASSWORD>` to the password in the secrets of the postgresql deploment.)
 
 ```[bash]
 export OPENPROJECT_INITIAL_HOST=openproject-initial.example.com
@@ -343,7 +343,7 @@ oc process -f upgrade/upgrade-pipeline.yaml \
   -p BUILD_FORK_IMAGE=true \
   -p FORKED_COMMUNITY_IMAGE_TAG=11-noupload \
   -p OPENPROJECT_FORK_REPO=$OPENPROJECT_FORK_REPO \
-  -p OPENPROJECT_FORK_GIT_BRANCH=stable/11-noupload-dev \
+  -p OPENPROJECT_FORK_GIT_BRANCH=stable/11-noupload \
   -p GIT_ACCESS_TOKEN_SECRET=$GIT_ACCESS_TOKEN_SECRET \
   -p DOCKERFILE_PATH=docker/prod/Dockerfile \
   -p RUBY_IMAGE_TAG=2.7.2-buster \
