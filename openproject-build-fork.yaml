@@ -63,7 +63,13 @@ objects:
         kind: ImageStreamTag
         name: community-fork:${COMMUNITY_IMAGE_TAG}
     postCommit: {}
-    resources: {}
+    resources:
+      limits:
+        cpu: '2'
+        memory: 4Gi
+      requests:
+        cpu: '1'
+        memory: 2Gi
     runPolicy: Serial
     source:
       git:
