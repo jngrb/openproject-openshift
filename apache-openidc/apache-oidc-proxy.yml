@@ -63,7 +63,7 @@ objects:
     name: apache-oidc-proxy
   spec:
     nodeSelector:
-      dockerbuild: true
+      dockerbuild: 'true'
     output:
       to:
         kind: ImageStreamTag

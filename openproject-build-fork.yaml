@@ -57,7 +57,7 @@ objects:
     name: community-fork
   spec:
     nodeSelector:
-      dockerbuild: true
+      dockerbuild: 'true'
     output:
       to:
         kind: ImageStreamTag

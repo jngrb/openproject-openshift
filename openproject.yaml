@@ -81,7 +81,7 @@ objects:
     name: community-app
   spec:
     nodeSelector:
-      dockerbuild: true
+      dockerbuild: 'true'
     output:
       to:
         kind: ImageStreamTag

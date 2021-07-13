@@ -17,6 +17,7 @@ pipeline {
         }
 
         stage('Rebuild forked openproject image') {
+            // assumes that forked-image build job does not need an update
             steps {
                 script {
                     if (env.BUILD_FORK_IMAGE.toBoolean()) {
