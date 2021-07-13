@@ -72,7 +72,7 @@ Now, we can run the all-in-one community image for initialization. (Change `<POS
 
 ```[bash]
 export OPENPROJECT_INITIAL_HOST=openproject-initial.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_SECRET=openproject-database-secret | oc create -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject-initial.yaml -p OPENPROJECT_HOST=$OPENPROJECT_INITIAL_HOST -p DATABASE_SECRET=openproject-database-secret -p APPCLASS=main | oc create -f -
 ```
 
 Wait for the POD to start and run through all initialization steps. This may take a while.
@@ -114,7 +114,7 @@ When the initialization of the files and database is done, we can run the 'real'
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
 oc project $PROJECT
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret -p APPCLASS=main | oc apply -f -
 ```
 
 After the regular OP container was started, you will have to fix the permissions on the data directory. Mount the PV on a cluster node and run:
@@ -184,7 +184,7 @@ Finally, change the deployment configuration to the image tag and scale the regu
 
 ```[bash]
 export OPENPROJECT_HOST=openproject.example.com
-oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret | oc apply -f -
+oc process -f https://raw.githubusercontent.com/jngrb/openproject-openshift/openid_connect/openproject.yaml -p COMMUNITY_IMAGE_TAG=$NEW_COMMUNITY_IMAGE_TAG -p OPENPROJECT_HOST=$OPENPROJECT_HOST -p DATABASE_SECRET=openproject-database-secret -p APPCLASS=main | oc apply -f -
 oc scale dc community --replicas=<REGULAR_NO_OF_REPLICA>
 oc adm policy remove-scc-from-user anyuid -z root-allowed
 ```

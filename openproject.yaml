@@ -49,6 +49,9 @@ parameters:
 - name: OIDC_LOGOUT_PATH
   description: Logout route for SSO
   value: oidc_logout
+- name: APPCLASS
+  description: Value of the label appclass specifyng the node where the main POD will run
+  value: main
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -78,7 +81,7 @@ objects:
     name: community-app
   spec:
     nodeSelector:
-      appclass: main
+      dockerbuild: true
     output:
       to:
         kind: ImageStreamTag
@@ -132,7 +135,7 @@ objects:
           deploymentconfig: community
       spec:
         nodeSelector:
-          appclass: main
+          appclass: ${APPCLASS}
         containers:
         - command:
             - /app/docker/uid_entrypoint.sh

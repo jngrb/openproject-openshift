@@ -22,6 +22,9 @@ parameters:
 - name: DOCKER_PATH
   description: Path to entrypoint inside docker image
   value: ./docker
+- name: APPCLASS
+  description: Value of the label appclass specifyng the node where the main POD will run
+  value: main
 objects:
 - apiVersion: batch/v1
   kind: Job
@@ -35,7 +38,7 @@ objects:
        generateName: "community-upgrade-${COMMUNITY_IMAGE_TAG}-"
       spec:
         nodeSelector:
-          appclass: main
+          appclass: ${APPCLASS}
         containers:
         - name: community-upgrade
           image: openproject/community:${COMMUNITY_IMAGE_TAG}

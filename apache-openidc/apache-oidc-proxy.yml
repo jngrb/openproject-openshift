@@ -31,6 +31,9 @@ parameters:
 - name: OIDC_REMOTE_USER_CLAIM
   description: Claim from which to take the username
   value: preferred_username
+- name: APPCLASS
+  description: Value of the label appclass specifyng the node where the main POD will run
+  value: main
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -59,7 +62,8 @@ objects:
       app: openproject
     name: apache-oidc-proxy
   spec:
-    nodeSelector: null
+    nodeSelector:
+      dockerbuild: true
     output:
       to:
         kind: ImageStreamTag
@@ -109,7 +113,7 @@ objects:
           deploymentconfig: apache-oidc-proxy
       spec:
         nodeSelector:
-          appclass: main
+          appclass: ${APPCLASS}
         containers:
         - env:
           - name: OIDC_PASS_PHRASE

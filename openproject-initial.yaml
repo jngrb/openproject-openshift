@@ -25,6 +25,9 @@ parameters:
 - name: DATABASE_SECRET
   description: Name of the secret with the database reference DATABASE_URL
   value: openproject-database-secret
+- name: APPCLASS
+  description: Value of the label appclass specifyng the node where the main POD will run
+  value: main
 objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
@@ -83,7 +86,7 @@ objects:
           deploymentconfig: community-initial
       spec:
         nodeSelector:
-          appclass: main
+          appclass: ${APPCLASS}
         containers:
         - env:
             - name: SECRET_KEY_BASE
