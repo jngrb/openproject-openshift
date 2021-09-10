@@ -58,6 +58,20 @@ pipeline {
             }
         }
 
+        stage('Restart memcached') {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(/*"${env.PROJECT_NAME}"*/) {
+                            def templateName = 'memcached'
+                            def rm = openshift.selector("dc", templateName)
+                              .rollout().latest()
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Apply and run upgrade job') {
             steps {
                 script {
