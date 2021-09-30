@@ -47,7 +47,7 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: caladreas/apache2-openidc-docker:0.2.0
+        name: debian:buster
       generation: null
       importPolicy: {}
       name: latest
@@ -81,7 +81,7 @@ objects:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: caladreas/apache2-openidc-docker:0.2.0
+          name: apache2-openidc-docker
       type: Docker
     triggers:
     - type: ConfigChange
