@@ -81,7 +81,7 @@ objects:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: apache2-openidc-docker
+          name: debian:buster
       type: Docker
     triggers:
     - type: ConfigChange
