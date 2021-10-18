@@ -192,6 +192,7 @@ pipeline {
                             def template = readFile 'apache-openidc/apache-oidc-proxy.yml'
                             def config = openshift.process(template,
                                 '-p', "PUBLIC_OPENPROJECT_HOST=${env.EXTERNAL_OPENPROJECT_HOST}",
+                                '-p', "POST_LOGOUT_REDIRECT_URL=${env.POST_LOGOUT_REDIRECT_URL}",
                                 '-p', "OIDC_METADATA_URL=${env.OIDC_METADATA_URL}")
                             openshift.apply(config)
                         }

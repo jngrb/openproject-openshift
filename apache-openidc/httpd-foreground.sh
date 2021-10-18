@@ -5,6 +5,10 @@ rm -f $APACHE_LOG_DIR/*.log
 ln -s /proc/self/fd/1 $APACHE_LOG_DIR/access.log
 ln -s /proc/self/fd/2 $APACHE_LOG_DIR/error.log
 
+if [ -z "$POST_LOGOUT_REDIRECT_URL" ]; then
+  POST_LOGOUT_REDIRECT_URL=https://$SERVER_NAME/
+fi
+
 # ALLOW TO BE SET VIA DOCKER SECRETS
 
 sed \

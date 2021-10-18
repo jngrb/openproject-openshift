@@ -43,6 +43,9 @@ parameters:
 - name: OIDC_METADATA_URL
   description: Configuration URL for the OpenID-Connect provider
   value: https://keycloak.apps.ingenieure.cloud/auth/realms/master/.well-known/openid-configuration
+- name: POST_LOGOUT_REDIRECT_URL
+  description: alternative URL to redirect user agent to after logout (defaults to 'https://$PUBLIC_OPENPROJECT_HOST' if left empty)
+  value: ""
 objects:
 - apiVersion: v1
   kind: BuildConfig
@@ -79,3 +82,5 @@ objects:
             value: "${PVC_SIZE}"
           - name: OIDC_METADATA_URL
             value: "${OIDC_METADATA_URL}"
+          - name: POST_LOGOUT_REDIRECT_URL
+            value: "${POST_LOGOUT_REDIRECT_URL}"

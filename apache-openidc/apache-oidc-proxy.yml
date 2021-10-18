@@ -34,6 +34,9 @@ parameters:
 - name: APPCLASS
   description: Value of the label appclass specifyng the node where the main POD will run
   value: main
+- name: POST_LOGOUT_REDIRECT_URL
+  description: alternative URL to redirect user agent to after logout (defaults to 'https://$PUBLIC_OPENPROJECT_HOST' if left empty)
+  value: ""
 objects:
 - apiVersion: v1
   kind: ImageStream
@@ -138,6 +141,8 @@ objects:
                 name: sso-auth-source-secret
           - name: SERVER_NAME
             value: ${PUBLIC_OPENPROJECT_HOST}
+          - name: POST_LOGOUT_REDIRECT_URL
+            value: ${POST_LOGOUT_REDIRECT_URL}
           - name: PROXY_PASS_LOCATION
             value: http://${INTERNAL_OPENPROJECT_SERVICE}/
           image: apache-oidc-proxy
