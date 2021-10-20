@@ -1,6 +1,6 @@
 ########### FROM https://github.com/joostvdg/apache2-openidc-docker
 ########### MIT License
-FROM debian:buster
+FROM debian:bullseye
 
 ## ENV
 ENV DEBIAN_FRONTEND noninteractive

@@ -24,5 +24,6 @@ sed \
 -e "s|REMOTE_USER_SECRET|${REMOTE_USER_SECRET}|g" \
 -i "${DEFAULT_SITE_LOC}/${DEFAULT_SITE}"
 
+echo "OIDCRedirectURLsAllowed ^${POST_LOGOUT_REDIRECT_URL}" >> /etc/apache2/mods-available/auth_openidc.conf
 
 apache2 -DFOREGROUND

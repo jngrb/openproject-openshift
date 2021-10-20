@@ -50,7 +50,7 @@ objects:
     - annotations: null
       from:
         kind: DockerImage
-        name: debian:buster
+        name: debian:bullseye
       generation: null
       importPolicy: {}
       name: latest
@@ -84,7 +84,7 @@ objects:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: debian:buster
+          name: debian:bullseye
       type: Docker
     triggers:
     - type: ConfigChange
