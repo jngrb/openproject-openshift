@@ -116,7 +116,8 @@ pipeline {
         stage('Rebuild OpenID-Connect image') {
             steps {
                 script {
-                    if (false /*env.BUILD_FORK_IMAGE.toBoolean()*/) {
+                    // always rebuild OIDC image from newest debian:bullseye
+                    if (true /*env.BUILD_FORK_IMAGE.toBoolean()*/) {
                         // increase timeout
                         timeout(time: 60, unit: 'MINUTES') {
                             openshift.withCluster() {
