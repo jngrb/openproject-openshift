@@ -28,7 +28,7 @@ We use the default persistent PostgreSQL app provided by OpenShift.
 
 ```[bash]
 oc project $PROJECT
-oc -n openshift process postgresql-persistent -p POSTGRESQL_DATABASE=openproject | oc create -f -
+oc -n openshift process postgresql-persistent -p POSTGRESQL_DATABASE=openproject -p MEMORY_LIMIT=1Gi | oc create -f -
 ```
 
 (If you want to keep things simple for testing, use -p POSTGRESQL_USER=onlyoffice -p POSTGRESQL_PASSWORD=onlyoffice.)
