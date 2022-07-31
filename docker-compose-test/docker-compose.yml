@@ -10,7 +10,7 @@ services:
     environment:
       SECRET_KEY_BASE: jngsecret
       DATABASE_URL: "postgres://openproject:openproject@openproject-db:5432/openproject?encoding=utf8&pool=5&timeout=5000&reconnect=true"
-      RAILS_CACHE_STORE: file_store
+      OPENPROJECT_RAILS_CACHE_STORE: file_store
       PASSENGER_START_TIMEOUT: 180
     volumes:
       - openproject-static:/var/openproject/assets
@@ -29,7 +29,7 @@ services:
     environment:
       SECRET_KEY_BASE: jngsecret
       DATABASE_URL: "postgres://openproject:openproject@openproject-db:5432/openproject"
-      RAILS_CACHE_STORE: file_store
+      OPENPROJECT_RAILS_CACHE_STORE: file_store
       PASSENGER_START_TIMEOUT: 180
     volumes:
       - openproject-static:/var/openproject/assets
