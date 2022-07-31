@@ -10,73 +10,73 @@ metadata:
     template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
     template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
 parameters:
-- name: COMMUNITY_IMAGE_TAG
-  description: Tag of the OpenProject Community Docker Image to be deployed
-  value: '10.6'
-- name: SECRET_KEY_BASE
-  description: Secret key for the OpenProject instance
-  value: dkp-spielwiese
-- name: DATABASE_SECRET
-  description: Name of the secret with the database reference DATABASE_URL
-  value: openproject-database-secret
-- name: DOCKER_PATH
-  description: Path to entrypoint inside docker image
-  value: ./docker
-- name: APPCLASS
-  description: Value of the label appclass specifyng the node where the main POD will run
-  value: main
+  - name: COMMUNITY_IMAGE_TAG
+    description: Tag of the OpenProject Community Docker Image to be deployed
+    value: "10.6"
+  - name: SECRET_KEY_BASE
+    description: Secret key for the OpenProject instance
+    value: dkp-spielwiese
+  - name: DATABASE_SECRET
+    description: Name of the secret with the database reference DATABASE_URL
+    value: openproject-database-secret
+  - name: DOCKER_PATH
+    description: Path to entrypoint inside docker image
+    value: ./docker
+  - name: APPCLASS
+    description: Value of the label appclass specifyng the node where the main POD will run
+    value: main
 objects:
-- apiVersion: batch/v1
-  kind: Job
-  metadata:
-    generateName: "community-upgrade-${COMMUNITY_IMAGE_TAG}-"
-  spec:
-    concurrencyPolicy: Replace
-    activeDeadlineSeconds: 3600
-    template:
-      metadata:
-       generateName: "community-upgrade-${COMMUNITY_IMAGE_TAG}-"
-      spec:
-        nodeSelector:
-          appclass: ${APPCLASS}
-        containers:
-        - name: community-upgrade
-          image: openproject/community:${COMMUNITY_IMAGE_TAG}
-          imagePullPolicy: Always
-          command:
-            - ${DOCKER_PATH}/entrypoint.sh
-          args:
-            - ${DOCKER_PATH}/seeder
-          env:
-            - name: SECRET_KEY_BASE
-              value: ${SECRET_KEY_BASE}
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  key: DATABASE_URL
-                  name: ${DATABASE_SECRET}
-            - name: RAILS_CACHE_STORE
-              value: file_store
-          ports:
-            - containerPort: 80
-              protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/openproject/assets
-              name: openproject-data
-              subPath: assets
-            - mountPath: /var/openproject/pgdata
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      generateName: "community-upgrade-${COMMUNITY_IMAGE_TAG}-"
+    spec:
+      concurrencyPolicy: Replace
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          generateName: "community-upgrade-${COMMUNITY_IMAGE_TAG}-"
+        spec:
+          nodeSelector:
+            appclass: ${APPCLASS}
+          containers:
+            - name: community-upgrade
+              image: openproject/community:${COMMUNITY_IMAGE_TAG}
+              imagePullPolicy: Always
+              command:
+                - ${DOCKER_PATH}/entrypoint.sh
+              args:
+                - ${DOCKER_PATH}/seeder
+              env:
+                - name: SECRET_KEY_BASE
+                  value: ${SECRET_KEY_BASE}
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      key: DATABASE_URL
+                      name: ${DATABASE_SECRET}
+                - name: OPENPROJECT_RAILS_CACHE_STORE
+                  value: file_store
+              ports:
+                - containerPort: 80
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/openproject/assets
+                  name: openproject-data
+                  subPath: assets
+                - mountPath: /var/openproject/pgdata
+                  name: community-upgrade-1
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          securityContext: {}
+          serviceAccountName: root-allowed
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: openproject-data
+              persistentVolumeClaim:
+                claimName: openproject-data
+            - emptyDir: {}
               name: community-upgrade-1
-        dnsPolicy: ClusterFirst
-        restartPolicy: Never
-        securityContext: {}
-        serviceAccountName: root-allowed
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - name: openproject-data
-          persistentVolumeClaim:
-            claimName: openproject-data
-        - emptyDir: {}
-          name: community-upgrade-1

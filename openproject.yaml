@@ -10,287 +10,287 @@ metadata:
     template.openshift.io/documentation-url: "https://github.com/jngrb/openproject-openshift/blob/master/README.md"
     template.openshift.io/support-url: "https://github.com/jngrb/openproject-openshift/issues"
 parameters:
-- name: COMMUNITY_IMAGE_KIND
-  description: Kind of the OpenProject Community Docker Image taken as source (DockerImage or ImageStreamTag)
-  value: DockerImage
-- name: COMMUNITY_IMAGE_NAME
-  description: Image name of the OpenProject Community Docker Image to be deployed
-  value: openproject/community
-- name: COMMUNITY_IMAGE_TAG
-  description: Tag of the OpenProject Community Docker Image to be deployed
-  value: '10.6'
-- name: INTERNAL_OPENPROJECT_HOST
-  description: Private application URL of Nextcloud (Route/host)
-  required: true
-- name: EXTERNAL_OPENPROJECT_HOST
-  description: Public application URL of Nextcloud (Route/host)
-  required: true
-- name: OPENPROJECT_DOCKERFILE_REPO
-  description: OpenProject Dockerfile source repository
-  value: https://github.com/jngrb/openproject-openshift.git
-- name: GIT_BRANCH
-  description: branch in source repository
-  value: openid_connect
-- name: PVC_SIZE
-  description: PVC size for Apps, Config and Data
-  value: 4Gi
-- name: SECRET_KEY_BASE
-  description: Secret key for the OpenProject instance
-  value: dkp-spielwiese
-- name: DATABASE_SECRET
-  description: Name of the secret with the database reference DATABASE_URL
-  value: openproject-database-secret
-- name: SSO_SECRET
-  description: Name of the secret with the SSO secrets
-  value: sso-auth-source-secret
-- name: DOCKER_PATH
-  description: Path to entrypoint inside docker image
-  value: ./docker
-- name: OIDC_LOGOUT_PATH
-  description: Logout route for SSO
-  value: oidc_logout
-- name: APPCLASS
-  description: Value of the label appclass specifyng the node where the main POD will run
-  value: main
+  - name: COMMUNITY_IMAGE_KIND
+    description: Kind of the OpenProject Community Docker Image taken as source (DockerImage or ImageStreamTag)
+    value: DockerImage
+  - name: COMMUNITY_IMAGE_NAME
+    description: Image name of the OpenProject Community Docker Image to be deployed
+    value: openproject/community
+  - name: COMMUNITY_IMAGE_TAG
+    description: Tag of the OpenProject Community Docker Image to be deployed
+    value: "10.6"
+  - name: INTERNAL_OPENPROJECT_HOST
+    description: Private application URL of Nextcloud (Route/host)
+    required: true
+  - name: EXTERNAL_OPENPROJECT_HOST
+    description: Public application URL of Nextcloud (Route/host)
+    required: true
+  - name: OPENPROJECT_DOCKERFILE_REPO
+    description: OpenProject Dockerfile source repository
+    value: https://github.com/jngrb/openproject-openshift.git
+  - name: GIT_BRANCH
+    description: branch in source repository
+    value: openid_connect
+  - name: PVC_SIZE
+    description: PVC size for Apps, Config and Data
+    value: 4Gi
+  - name: SECRET_KEY_BASE
+    description: Secret key for the OpenProject instance
+    value: dkp-spielwiese
+  - name: DATABASE_SECRET
+    description: Name of the secret with the database reference DATABASE_URL
+    value: openproject-database-secret
+  - name: SSO_SECRET
+    description: Name of the secret with the SSO secrets
+    value: sso-auth-source-secret
+  - name: DOCKER_PATH
+    description: Path to entrypoint inside docker image
+    value: ./docker
+  - name: OIDC_LOGOUT_PATH
+    description: Logout route for SSO
+    value: oidc_logout
+  - name: APPCLASS
+    description: Value of the label appclass specifyng the node where the main POD will run
+    value: main
 objects:
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    labels:
-      build: community-app
-      app: openproject
-    name: community-app
-  spec:
-    tags:
-    - annotations: null
-      from:
-        kind: DockerImage
-        name: community-app:latest
-      generation: null
-      importPolicy: {}
-      name: latest
-      referencePolicy:
-        type: ""
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    creationTimestamp: null
-    labels:
-      build: community-app
-      app: openproject
-    name: community-app
-  spec:
-    nodeSelector:
-      dockerbuild: 'true'
-    output:
-      to:
-        kind: ImageStreamTag
-        name: community-app:latest
-    postCommit: {}
-    resources: {}
-    runPolicy: Serial
-    source:
-      git:
-        uri: ${OPENPROJECT_DOCKERFILE_REPO}
-        ref: ${GIT_BRANCH}
-      type: Git
-    strategy:
-      dockerStrategy:
-        from:
-          kind: ${COMMUNITY_IMAGE_KIND}
-          name: ${COMMUNITY_IMAGE_NAME}:${COMMUNITY_IMAGE_TAG}
-        buildArgs:
-          - name: COMMUNITY_IMAGE_TAG
-            value: '${COMMUNITY_IMAGE_TAG}'
-          - name: DOCKER_PATH
-            value: '${DOCKER_PATH}'
-      type: Docker
-    triggers:
-    - type: ConfigChange
-- apiVersion: v1
-  kind: DeploymentConfig
-  metadata:
-    labels:
-      app: openproject
-    name: community
-  spec:
-    replicas: 1
-    selector:
-      app: openproject
-      deploymentconfig: community
-    strategy:
-      activeDeadlineSeconds: 21600
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      type: Rolling
-    template:
-      metadata:
-        labels:
-          app: openproject
-          deploymentconfig: community
-      spec:
-        nodeSelector:
-          appclass: ${APPCLASS}
-        containers:
-        - command:
-            - /app/docker/uid_entrypoint.sh
-          args:
-            - ${DOCKER_PATH}/entrypoint.sh
-            - ${DOCKER_PATH}/web
-          env:
-            - name: SECRET_KEY_BASE
-              value: ${SECRET_KEY_BASE}
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  key: DATABASE_URL
-                  name: ${DATABASE_SECRET}
-            - name: RAILS_CACHE_STORE
-              value: memcache
-            - name: CACHE_MEMCACHE_SERVER
-              value: 'memcached.openproject.svc:11211'
-            - name: PASSENGER_START_TIMEOUT
-              value: "120"
-            - name: OPENPROJECT_AUTH__SOURCE__SSO_HEADER
-              value: "X-Remote-User"
-            - name: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
-                  name: ${SSO_SECRET}
-            - name: OPENPROJECT_AUTH__SOURCE__SSO_LOGOUT__URL
-              value: "https://${EXTERNAL_OPENPROJECT_HOST}/${OIDC_LOGOUT_PATH}"
-          readinessProbe:
-            failureThreshold: 3
-            initialDelaySeconds: 120
-            periodSeconds: 10
-            successThreshold: 1
-            tcpSocket:
-              port: 8080
-            timeoutSeconds: 5
-          livenessProbe:
-            failureThreshold: 3
-            initialDelaySeconds: 120
-            periodSeconds: 10
-            successThreshold: 1
-            tcpSocket:
-              port: 8080
-            timeoutSeconds: 5
-          image: community-app
-          imagePullPolicy: Always
-          name: community-web
-          ports:
-            - containerPort: 8080
-              protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/openproject/assets
-              name: openproject-data
-              subPath: assets
-        - command:
-            - /app/docker/uid_entrypoint.sh
-          args:
-            - ${DOCKER_PATH}/entrypoint.sh
-            - ${DOCKER_PATH}/worker
-          env:
-            - name: SECRET_KEY_BASE
-              value: ${SECRET_KEY_BASE}
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  key: DATABASE_URL
-                  name: ${DATABASE_SECRET}
-            - name: RAILS_CACHE_STORE
-              value: memcache
-            - name: CACHE_MEMCACHE_SERVER
-              value: 'memcached.openproject.svc:11211'
-            - name: PASSENGER_START_TIMEOUT
-              value: "120"
-          readinessProbe:
-            failureThreshold: 3
-            initialDelaySeconds: 120
-            periodSeconds: 10
-            successThreshold: 1
-            tcpSocket:
-              port: 8080
-            timeoutSeconds: 5
-          livenessProbe:
-            failureThreshold: 3
-            initialDelaySeconds: 120
-            periodSeconds: 10
-            successThreshold: 1
-            tcpSocket:
-              port: 8080
-            timeoutSeconds: 5
-          image: community-app
-          imagePullPolicy: Always
-          name: community-worker
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-            - mountPath: /var/openproject/assets
-              name: openproject-data
-              subPath: assets
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - name: openproject-data
-          persistentVolumeClaim:
-            claimName: openproject-data
-    test: false
-    triggers:
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - community-web
-        - community-worker
-        from:
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      labels:
+        build: community-app
+        app: openproject
+      name: community-app
+    spec:
+      tags:
+        - annotations: null
+          from:
+            kind: DockerImage
+            name: community-app:latest
+          generation: null
+          importPolicy: {}
+          name: latest
+          referencePolicy:
+            type: ""
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      creationTimestamp: null
+      labels:
+        build: community-app
+        app: openproject
+      name: community-app
+    spec:
+      nodeSelector:
+        dockerbuild: "true"
+      output:
+        to:
           kind: ImageStreamTag
           name: community-app:latest
-      type: ImageChange
-    - type: ConfigChange
-- apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app: openproject
-    name: community
-  spec:
-    ports:
-    - name: http
-      port: 80
-      protocol: TCP
-      targetPort: 8080
-    selector:
-      app: openproject
-      deploymentconfig: community
-    sessionAffinity: None
-    type: ClusterIP
-- apiVersion: v1
-  kind: Route
-  metadata:
-    labels:
-      app: openproject
-    name: community
-  spec:
-    host: ${INTERNAL_OPENPROJECT_HOST}
-    port:
-      targetPort: http
-    tls:
-      insecureEdgeTerminationPolicy: Redirect
-      termination: edge
-    to:
-      kind: Service
+      postCommit: {}
+      resources: {}
+      runPolicy: Serial
+      source:
+        git:
+          uri: ${OPENPROJECT_DOCKERFILE_REPO}
+          ref: ${GIT_BRANCH}
+        type: Git
+      strategy:
+        dockerStrategy:
+          from:
+            kind: ${COMMUNITY_IMAGE_KIND}
+            name: ${COMMUNITY_IMAGE_NAME}:${COMMUNITY_IMAGE_TAG}
+          buildArgs:
+            - name: COMMUNITY_IMAGE_TAG
+              value: "${COMMUNITY_IMAGE_TAG}"
+            - name: DOCKER_PATH
+              value: "${DOCKER_PATH}"
+        type: Docker
+      triggers:
+        - type: ConfigChange
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app: openproject
       name: community
-      weight: 100
-    wildcardPolicy: None
+    spec:
+      replicas: 1
+      selector:
+        app: openproject
+        deploymentconfig: community
+      strategy:
+        activeDeadlineSeconds: 21600
+        resources: {}
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 25%
+          maxUnavailable: 25%
+          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            app: openproject
+            deploymentconfig: community
+        spec:
+          nodeSelector:
+            appclass: ${APPCLASS}
+          containers:
+            - command:
+                - /app/docker/uid_entrypoint.sh
+              args:
+                - ${DOCKER_PATH}/entrypoint.sh
+                - ${DOCKER_PATH}/web
+              env:
+                - name: SECRET_KEY_BASE
+                  value: ${SECRET_KEY_BASE}
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      key: DATABASE_URL
+                      name: ${DATABASE_SECRET}
+                - name: OPENPROJECT_RAILS_CACHE_STORE
+                  value: memcache
+                - name: OPENPROJECT_CACHE_MEMCACHE_SERVER
+                  value: "memcached.openproject.svc:11211"
+                - name: PASSENGER_START_TIMEOUT
+                  value: "120"
+                - name: OPENPROJECT_AUTH__SOURCE__SSO_HEADER
+                  value: "X-Remote-User"
+                - name: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      key: OPENPROJECT_AUTH__SOURCE__SSO_SECRET
+                      name: ${SSO_SECRET}
+                - name: OPENPROJECT_AUTH__SOURCE__SSO_LOGOUT__URL
+                  value: "https://${EXTERNAL_OPENPROJECT_HOST}/${OIDC_LOGOUT_PATH}"
+              readinessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 8080
+                timeoutSeconds: 5
+              livenessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 8080
+                timeoutSeconds: 5
+              image: community-app
+              imagePullPolicy: Always
+              name: community-web
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/openproject/assets
+                  name: openproject-data
+                  subPath: assets
+            - command:
+                - /app/docker/uid_entrypoint.sh
+              args:
+                - ${DOCKER_PATH}/entrypoint.sh
+                - ${DOCKER_PATH}/worker
+              env:
+                - name: SECRET_KEY_BASE
+                  value: ${SECRET_KEY_BASE}
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      key: DATABASE_URL
+                      name: ${DATABASE_SECRET}
+                - name: OPENPROJECT_RAILS_CACHE_STORE
+                  value: memcache
+                - name: OPENPROJECT_CACHE_MEMCACHE_SERVER
+                  value: "memcached.openproject.svc:11211"
+                - name: PASSENGER_START_TIMEOUT
+                  value: "120"
+              readinessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 8080
+                timeoutSeconds: 5
+              livenessProbe:
+                failureThreshold: 3
+                initialDelaySeconds: 120
+                periodSeconds: 10
+                successThreshold: 1
+                tcpSocket:
+                  port: 8080
+                timeoutSeconds: 5
+              image: community-app
+              imagePullPolicy: Always
+              name: community-worker
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              volumeMounts:
+                - mountPath: /var/openproject/assets
+                  name: openproject-data
+                  subPath: assets
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: openproject-data
+              persistentVolumeClaim:
+                claimName: openproject-data
+      test: false
+      triggers:
+        - imageChangeParams:
+            automatic: true
+            containerNames:
+              - community-web
+              - community-worker
+            from:
+              kind: ImageStreamTag
+              name: community-app:latest
+          type: ImageChange
+        - type: ConfigChange
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: openproject
+      name: community
+    spec:
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app: openproject
+        deploymentconfig: community
+      sessionAffinity: None
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      labels:
+        app: openproject
+      name: community
+    spec:
+      host: ${INTERNAL_OPENPROJECT_HOST}
+      port:
+        targetPort: http
+      tls:
+        insecureEdgeTerminationPolicy: Redirect
+        termination: edge
+      to:
+        kind: Service
+        name: community
+        weight: 100
+      wildcardPolicy: None
